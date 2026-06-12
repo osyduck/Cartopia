@@ -17,6 +17,11 @@ const schema = z.object({
 
   REDIS_URL: z.string().default("redis://localhost:6379"),
 
+  // Quota sweep: how often, and the warn/recover thresholds (fractions of quota).
+  QUOTA_SWEEP_INTERVAL_SECONDS: z.coerce.number().int().min(10).default(60),
+  QUOTA_WARN_THRESHOLD: z.coerce.number().min(0).max(1).default(0.8),
+  QUOTA_RECOVER_THRESHOLD: z.coerce.number().min(0).max(1).default(0.95),
+
   S3_ENDPOINT: z.string().default("http://localhost:9000"),
   S3_REGION: z.string().default("us-east-1"),
   S3_ACCESS_KEY: z.string().default("minioadmin"),

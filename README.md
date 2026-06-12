@@ -52,7 +52,8 @@ npm run db:migrate
 npm run db:seed
 
 # 5. run
-npm run dev    # http://localhost:3000
+npm run dev       # http://localhost:3000  (control panel)
+npm run worker    # background quota sweep (BullMQ, every 60s)
 ```
 
 Log in with `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env.local`
@@ -74,9 +75,22 @@ Cross-database isolation is enforced: a tenant role cannot connect to other
 databases or to the `postgres`/`template1` maintenance databases
 (see `infra/dataplane-init/02-lockdown.sql`).
 
+## Phase 2 (done)
+
+- **Quota sweep** (`lib/services/quota.ts`) — samples `pg_database_size` per
+  database, records usage snapshots, and drives a soft quota state machine:
+  warn at 80% → enforce read-only at 100% (kicks live sessions) → recover when
+  it drops back under 95% (hysteresis). Each transition logs a `quota_events`
+  row + a notification.
+- **BullMQ worker** (`worker/index.ts`) — repeatable job runs the sweep every
+  `QUOTA_SWEEP_INTERVAL_SECONDS` (default 60). Run with `npm run worker`.
+- **UI** — alert banner + usage bars/% + status badges on the databases list, a
+  manual "Quota sweep" button, and a Quota events feed on the overview.
+
+One-off sweep without the worker: `npm run quota:sweep`.
+
 ## Roadmap
 
-- **Phase 2** — quota monitoring worker + auto read-only on overflow
 - **Phase 3** — Monitoring page (active connections, size, cache hit ratio,
   instance health) and daily backups (`pg_dump` → MinIO/S3, 7-day retention)
 - **Phase 4** — multi-node routing, PITR, hard quotas

@@ -10,7 +10,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file=.env.local scripts/migrate.ts",
     "db:seed": "tsx --env-file=.env.local scripts/seed.ts",
-    "worker": "tsx --env-file=.env.local worker/index.ts"
+    "worker": "tsx --env-file=.env.local worker/index.ts",
+    "quota:sweep": "tsx --env-file=.env.local scripts/quota-sweep.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1067.0",

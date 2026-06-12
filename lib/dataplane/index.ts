@@ -129,10 +129,11 @@ export async function setDatabaseReadOnly(
   );
 }
 
-async function terminateConnections(
+export async function terminateDatabaseConnections(
   instance: Instance,
   dbName: string,
 ): Promise<void> {
+  assertIdentifier(dbName, "database name");
   await adminPool(instance, "postgres").query(
     format(
       `SELECT pg_terminate_backend(pid)
@@ -142,6 +143,9 @@ async function terminateConnections(
     ),
   );
 }
+
+// Internal alias kept for existing callers in this module.
+const terminateConnections = terminateDatabaseConnections;
 
 // ─── Extra login roles attached to a database ────────────────────────────────
 

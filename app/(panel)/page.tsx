@@ -3,12 +3,14 @@ import { desc, eq, count } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { databases, dbRoles, instances, auditLogs } from "@/lib/db/schema";
 import { listDatabases } from "@/lib/services/databases";
+import { getRecentQuotaEvents } from "@/lib/services/quota";
+import { Badge } from "@/components/badge";
 import { formatBytes, formatDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 export default async function OverviewPage() {
-  const [[dbCount], [roleCount], [instanceCount], recent, dbs] =
+  const [[dbCount], [roleCount], [instanceCount], recent, dbs, quotaEvents] =
     await Promise.all([
       db.select({ n: count() }).from(databases),
       db.select({ n: count() }).from(dbRoles),
@@ -18,7 +20,14 @@ export default async function OverviewPage() {
         .where(eq(instances.status, "online")),
       db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt)).limit(8),
       listDatabases(),
+      getRecentQuotaEvents(8),
     ]);
+
+  const eventTone = {
+    warning: "warning",
+    exceeded: "danger",
+    recovered: "success",
+  } as const;
 
   const totalBytes = dbs.reduce((sum, d) => sum + (d.sizeBytes ?? 0), 0);
 
@@ -52,6 +61,33 @@ export default async function OverviewPage() {
           </div>
         ))}
       </div>
+
+      <section className="rounded-2xl border border-border bg-surface p-5">
+        <h2 className="mb-3 font-medium">Quota events</h2>
+        {quotaEvents.length === 0 ? (
+          <p className="text-sm text-muted">Belum ada event quota.</p>
+        ) : (
+          <ul className="space-y-2">
+            {quotaEvents.map((e) => (
+              <li
+                key={e.id}
+                className="flex items-center justify-between gap-3 text-sm"
+              >
+                <span className="flex items-center gap-2">
+                  <Badge tone={eventTone[e.type]}>{e.type}</Badge>
+                  <span className="font-medium">{e.dbName}</span>
+                  <span className="text-muted">
+                    {formatBytes(e.sizeBytes)} / {formatBytes(e.quotaBytes)}
+                  </span>
+                </span>
+                <span className="shrink-0 text-xs text-muted">
+                  {formatDate(e.createdAt)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="rounded-2xl border border-border bg-surface p-5">
         <h2 className="mb-3 font-medium">Aktivitas terbaru</h2>

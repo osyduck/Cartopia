@@ -13,6 +13,7 @@ import {
   deleteRole,
   resetRolePassword,
 } from "@/lib/services/databases";
+import { runQuotaSweep } from "@/lib/services/quota";
 
 const identifier = z
   .string()
@@ -72,6 +73,13 @@ export async function createDatabaseAction(
   } catch (err) {
     return { error: (err as Error).message };
   }
+}
+
+export async function runSweepAction(): Promise<void> {
+  await requireSession();
+  await runQuotaSweep();
+  revalidatePath("/databases");
+  revalidatePath("/");
 }
 
 export async function deleteDatabaseAction(formData: FormData): Promise<void> {
