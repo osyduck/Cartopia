@@ -1,36 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cartopia
 
-## Getting Started
+Self-hosted **PostgreSQL DBaaS control panel**. One web UI to provision and
+manage many databases + roles on a shared PostgreSQL server — like a mini,
+self-hosted DigitalOcean Managed Databases.
 
-First, run the development server:
+Built with Next.js + TypeScript. Single admin login (no multi-tenant RBAC).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Architecture
+
+Cartopia separates the **control plane** (this app + its own metadata DB) from
+the **data plane** (the managed PostgreSQL where tenant databases live). The
+control plane connects to the data plane as an admin role to run DDL; end users
+connect to the data plane through **PgBouncer**, never to the control plane.
+
+```
+Browser ──▶ Cartopia (Next.js) ──┬─▶ Metadata DB (Postgres)   ← control plane
+                                 └─▶ Data plane Postgres ◀─ PgBouncer ◀─ apps
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Multi-node ready: every database row references an `instances` row, so scaling
+out later means registering another data-plane node, not re-architecting.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Next.js 16 (App Router) + TypeScript, Tailwind v4
+- Drizzle ORM for the metadata DB
+- `pg` + `pg-format` for data-plane DDL (identifiers validated + `%I`-quoted)
+- Single-admin session (`jose` JWT cookie + `bcryptjs`)
+- PgBouncer (transaction pooling, `auth_query`)
+- Planned: BullMQ + Redis worker (quota/metrics/backups), MinIO/S3 backups
 
-## Learn More
+## Prerequisites
 
-To learn more about Next.js, take a look at the following resources:
+- Node 20+ (built on Node 24)
+- Docker Desktop (for the dev stack)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Getting started
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# 1. dependencies
+npm install
 
-## Deploy on Vercel
+# 2. environment (defaults already match docker-compose)
+cp .env.example .env.local
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# 3. infra: metadata-pg, dataplane-pg, pgbouncer, redis, minio
+docker compose up -d
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# 4. metadata schema + seed (admin user + default instance)
+npm run db:migrate
+npm run db:seed
+
+# 5. run
+npm run dev    # http://localhost:3000
+```
+
+Log in with `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env.local`
+(default `admin@cartopia.local` / `changeme123`).
+
+## What works today (Phase 1)
+
+- Single-admin auth (login + route protection via `proxy.ts`)
+- Create / drop databases — each gets a dedicated owner role, `REVOKE CONNECT
+  FROM PUBLIC`, schema ownership, connection + statement limits
+- Add / remove extra roles with **read** or **read-write** access
+- Reset role passwords (shown once, never stored)
+- Per-database storage usage + quota bar; **read-only** toggle (quota
+  enforcement primitive — blocks writes, allows reads + DELETE)
+- Connection strings pointed at PgBouncer
+- Audit log of every mutating action
+
+Cross-database isolation is enforced: a tenant role cannot connect to other
+databases or to the `postgres`/`template1` maintenance databases
+(see `infra/dataplane-init/02-lockdown.sql`).
+
+## Roadmap
+
+- **Phase 2** — quota monitoring worker + auto read-only on overflow
+- **Phase 3** — Monitoring page (active connections, size, cache hit ratio,
+  instance health) and daily backups (`pg_dump` → MinIO/S3, 7-day retention)
+- **Phase 4** — multi-node routing, PITR, hard quotas
+
+## Useful scripts
+
+```bash
+npm run db:generate   # regenerate Drizzle migration from schema changes
+npm run db:migrate    # apply migrations to the metadata DB
+npm run db:seed       # idempotent admin + default-instance seed
+npx tsx --env-file=.env.local scripts/smoke-dataplane.ts   # provisioning smoke test
+```
+
+## Layout
+
+```
+app/(panel)/        authenticated UI (databases, monitoring, backups, audit)
+app/login/          login page + action
+lib/db/             Drizzle schema + metadata client
+lib/dataplane/      provisioning ops, identifier validation, admin pools
+lib/services/       metadata <-> data-plane orchestration
+lib/auth/           session (jwt) + password hashing
+infra/              docker init SQL + pgbouncer config
+```

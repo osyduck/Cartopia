@@ -1,0 +1,107 @@
+# Cartopia — dev infrastructure
+# Control plane metadata DB, data plane PostgreSQL, PgBouncer, Redis, MinIO.
+#
+#   docker compose up -d
+#
+# Ports are offset to avoid clashing with a local Postgres:
+#   metadata-pg  -> localhost:5433
+#   dataplane-pg -> localhost:5432
+#   pgbouncer    -> localhost:6432   (tenant connection strings point here)
+#   redis        -> localhost:6379
+#   minio        -> localhost:9000 (S3 API) / 9001 (console)
+
+services:
+  metadata-pg:
+    image: postgres:17
+    container_name: cartopia-metadata-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cartopia
+      POSTGRES_PASSWORD: cartopia_meta_pw
+      POSTGRES_DB: cartopia_meta
+    ports:
+      - "5433:5432"
+    volumes:
+      - metadata-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cartopia -d cartopia_meta"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  dataplane-pg:
+    image: postgres:17
+    container_name: cartopia-dataplane-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: dataplane_super_pw
+      POSTGRES_DB: postgres
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=200"
+    ports:
+      - "5432:5432"
+    volumes:
+      - dataplane-pg-data:/var/lib/postgresql/data
+      - ./infra/dataplane-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: cartopia-pgbouncer
+    restart: unless-stopped
+    depends_on:
+      dataplane-pg:
+        condition: service_healthy
+    ports:
+      - "6432:6432"
+    volumes:
+      - ./infra/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./infra/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+
+  redis:
+    image: redis:7-alpine
+    container_name: cartopia-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  minio:
+    image: minio/minio:latest
+    container_name: cartopia-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+
+  # Creates the backups bucket on startup, then exits.
+  minio-setup:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc alias set local http://minio:9000 minioadmin minioadmin; do sleep 1; done;
+      /usr/bin/mc mb --ignore-existing local/cartopia-backups;
+      echo 'bucket ready';
+      "
+
+volumes:
+  metadata-pg-data:
+  dataplane-pg-data:
+  redis-data:
+  minio-data:

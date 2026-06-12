@@ -1,0 +1,3 @@
+; Only the auth_user needs to live here — every other role is resolved
+; dynamically through auth_query. Plaintext is fine for local dev.
+"pgbouncer_auth" "pgbouncer_auth_pw"
