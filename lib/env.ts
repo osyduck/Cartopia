@@ -22,6 +22,15 @@ const schema = z.object({
   QUOTA_WARN_THRESHOLD: z.coerce.number().min(0).max(1).default(0.8),
   QUOTA_RECOVER_THRESHOLD: z.coerce.number().min(0).max(1).default(0.95),
 
+  // Monitoring: how often to sample metrics + ping instances.
+  METRICS_SWEEP_INTERVAL_SECONDS: z.coerce.number().int().min(10).default(60),
+
+  // Backups: pg_dump via the data-plane Docker container (dev) or a native
+  // pg_dump binary on PATH (prod). Daily cron + rolling retention.
+  BACKUP_DOCKER_CONTAINER: z.string().default(""),
+  PG_DUMP_BIN: z.string().default("pg_dump"),
+  BACKUP_CRON: z.string().default("0 2 * * *"),
+
   S3_ENDPOINT: z.string().default("http://localhost:9000"),
   S3_REGION: z.string().default("us-east-1"),
   S3_ACCESS_KEY: z.string().default("minioadmin"),

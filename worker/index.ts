@@ -1,6 +1,8 @@
 import { Queue, Worker, type ConnectionOptions } from "bullmq";
 import { env } from "@/lib/env";
 import { runQuotaSweep } from "@/lib/services/quota";
+import { runMonitorSweep } from "@/lib/services/monitoring";
+import { runAllBackups, pruneOldBackups } from "@/lib/services/backups";
 
 const QUEUE = "cartopia-jobs";
 
@@ -20,14 +22,25 @@ async function main() {
 
   const queue = new Queue(QUEUE, { connection });
 
-  // Repeatable quota sweep on a fixed interval (BullMQ job scheduler).
+  // Repeatable schedulers (BullMQ job scheduler).
   await queue.upsertJobScheduler(
     "quota-sweep",
     { every: env.QUOTA_SWEEP_INTERVAL_SECONDS * 1000 },
     { name: "quota-sweep" },
   );
-  // Run once right away so we don't wait a full interval on boot.
+  await queue.upsertJobScheduler(
+    "monitor-sweep",
+    { every: env.METRICS_SWEEP_INTERVAL_SECONDS * 1000 },
+    { name: "monitor-sweep" },
+  );
+  await queue.upsertJobScheduler(
+    "backup-all",
+    { pattern: env.BACKUP_CRON },
+    { name: "backup-all" },
+  );
+  // Run the sweeps once on boot so we don't wait a full interval.
   await queue.add("quota-sweep", {});
+  await queue.add("monitor-sweep", {});
 
   const worker = new Worker(
     QUEUE,
@@ -43,6 +56,22 @@ async function main() {
         );
         return res;
       }
+      if (job.name === "monitor-sweep") {
+        const res = await runMonitorSweep();
+        console.log(
+          `[worker] monitor-sweep: ${res.instancesChecked} instances, ${res.databasesSampled} sampled`,
+        );
+        return res;
+      }
+      if (job.name === "backup-all") {
+        const res = await runAllBackups();
+        const pruned = await pruneOldBackups();
+        const ok = res.filter((r) => r.status === "success").length;
+        console.log(
+          `[worker] backup-all: ${ok}/${res.length} ok, ${pruned} pruned (>${env.BACKUP_RETENTION_DAYS}d)`,
+        );
+        return { res, pruned };
+      }
     },
     { connection },
   );
@@ -52,7 +81,7 @@ async function main() {
   );
 
   console.log(
-    `[worker] up — quota sweep every ${env.QUOTA_SWEEP_INTERVAL_SECONDS}s`,
+    `[worker] up — quota ${env.QUOTA_SWEEP_INTERVAL_SECONDS}s · monitor ${env.METRICS_SWEEP_INTERVAL_SECONDS}s · backup "${env.BACKUP_CRON}"`,
   );
 }
 

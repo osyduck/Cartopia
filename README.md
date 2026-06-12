@@ -89,11 +89,29 @@ databases or to the `postgres`/`template1` maintenance databases
 
 One-off sweep without the worker: `npm run quota:sweep`.
 
+## Phase 3 (done)
+
+- **Monitoring** (`lib/services/monitoring.ts` + `/monitoring`) — per-database
+  active connections, total connections, cache hit ratio and size, plus
+  per-instance health (online/unreachable via ping) and a 24h size sparkline.
+  Sampled into `metric_snapshots` by a `monitor-sweep` worker job.
+- **Backups** (`lib/services/backups.ts` + `/backups`) — daily `pg_dump -Fc`
+  per database streamed straight to MinIO/S3, recorded in `backups`, with a
+  rolling **7-day retention** prune. Runs on a cron (`BACKUP_CRON`, default
+  02:00) plus a manual "Backup now" button. Restores verified.
+
+The worker now schedules three jobs: `quota-sweep`, `monitor-sweep` (each every
+60s) and `backup-all` (daily cron + prune).
+
+```bash
+npm run monitor:sweep   # one-off metrics + health sample
+npm run backup:now      # one-off backup of every db + prune
+npx tsx --env-file=.env.local scripts/restore-test.ts   # restore a backup into a temp db
+```
+
 ## Roadmap
 
-- **Phase 3** — Monitoring page (active connections, size, cache hit ratio,
-  instance health) and daily backups (`pg_dump` → MinIO/S3, 7-day retention)
-- **Phase 4** — multi-node routing, PITR, hard quotas
+- **Phase 4** — multi-node routing, PITR (WAL/pgBackRest), hard quotas
 
 ## Useful scripts
 
