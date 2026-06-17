@@ -1,0 +1,160 @@
+# Cartopia — production stack.
+# Infra (metadata-pg, dataplane-pg, pgbouncer, redis, minio) + the app (web)
+# and the BullMQ worker, all in one compose. Internal services are NOT exposed
+# publicly — only PgBouncer 6432 (tenant connections) and web 3000 on loopback
+# (for the host Nginx reverse proxy).
+#
+# Usage:
+#   cp .env.production.example .env.production   # edit real secrets
+#   docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+#   docker compose --env-file .env.production -f docker-compose.prod.yml exec web npm run db:migrate
+#   docker compose --env-file .env.production -f docker-compose.prod.yml exec web npm run db:seed
+#
+# Variable interpolation (${VAR}) reads from --env-file (.env.production).
+# web/worker also load the same file via env_file.
+
+services:
+  metadata-pg:
+    image: postgres:17
+    container_name: cartopia-metadata-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cartopia
+      POSTGRES_PASSWORD: ${META_DB_PASSWORD}
+      POSTGRES_DB: cartopia_meta
+    expose: ["5432"]            # internal only — reached over the docker network
+    volumes:
+      - metadata-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cartopia -d cartopia_meta"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  dataplane-pg:
+    image: postgres:17
+    container_name: cartopia-dataplane-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DATAPLANE_DB_PASSWORD}
+      POSTGRES_DB: postgres
+    command:
+      - postgres
+      - -c
+      - max_connections=200
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - pg_stat_statements.track=all
+    expose: ["5432"]            # internal only
+    volumes:
+      - dataplane-pg-data:/var/lib/postgresql/data
+      - ./infra/dataplane-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Transaction pooler — PUBLIC. Tenant connection strings point here (6432).
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: cartopia-pgbouncer
+    restart: unless-stopped
+    depends_on:
+      dataplane-pg: { condition: service_healthy }
+    ports:
+      - "0.0.0.0:6432:6432"
+    volumes:
+      - ./infra/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./infra/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+
+  # Session pooler — loopback only by default. Expose publicly only if tenants
+  # need session-scoped connections (SET, advisory locks, prepared statements).
+  pgbouncer-session:
+    image: edoburu/pgbouncer:latest
+    container_name: cartopia-pgbouncer-session
+    restart: unless-stopped
+    depends_on:
+      dataplane-pg: { condition: service_healthy }
+    ports:
+      - "127.0.0.1:6433:6433"
+    volumes:
+      - ./infra/pgbouncer/pgbouncer-session.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./infra/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+
+  redis:
+    image: redis:7-alpine
+    container_name: cartopia-redis
+    restart: unless-stopped
+    expose: ["6379"]
+    volumes:
+      - redis-data:/data
+
+  minio:
+    image: minio/minio:latest
+    container_name: cartopia-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+    expose: ["9000"]            # internal only — web/worker reach it via network
+    volumes:
+      - minio-data:/data
+
+  # One-shot: creates the backups bucket on first boot.
+  minio-setup:
+    image: minio/mc:latest
+    depends_on: [minio]
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc alias set local http://minio:9000 ${S3_ACCESS_KEY} ${S3_SECRET_KEY}; do sleep 1; done;
+      /usr/bin/mc mb --ignore-existing local/${S3_BUCKET};
+      echo 'bucket ready';
+      "
+
+  # Next.js standalone server. Nginx (on the host) reverse-proxies here.
+  web:
+    build:
+      context: .
+      target: web
+    image: cartopia-web
+    container_name: cartopia-web
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+    ports:
+      - "127.0.0.1:3000:3000"   # host Nginx only — not public
+    depends_on:
+      metadata-pg: { condition: service_healthy }
+      redis: { condition: service_started }
+
+  # BullMQ worker: quota sweep, metrics sampling, scheduled backups.
+  worker:
+    build:
+      context: .
+      target: worker
+    image: cartopia-worker
+    container_name: cartopia-worker
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+      BACKUP_DOCKER_CONTAINER: cartopia-dataplane-pg
+    # pg_dump runs inside the dataplane container (PG 17 matched) via the socket.
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      metadata-pg: { condition: service_healthy }
+      dataplane-pg: { condition: service_healthy }
+      redis: { condition: service_started }
+      minio: { condition: service_started }
+
+volumes:
+  metadata-pg-data:
+  dataplane-pg-data:
+  redis-data:
+  minio-data:
