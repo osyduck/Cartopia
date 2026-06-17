@@ -18,6 +18,25 @@ const statusTone = {
   pending: "muted",
 } as const;
 
+/** Best-effort humanization of common cron patterns (daily/weekly at a time). */
+function humanizeCron(cron: string): string {
+  const parts = cron.trim().split(/\s+/);
+  if (parts.length !== 5) return cron;
+  const [, hour, dom, mon, dow] = parts;
+  const fmtHour = (h: string) => {
+    const n = parseInt(h, 10);
+    if (Number.isNaN(n)) return h;
+    if (n === 0) return "12:00 AM";
+    if (n < 12) return `${n}:00 AM`;
+    if (n === 12) return "12:00 PM";
+    return `${n - 12}:00 PM`;
+  };
+  const at = fmtHour(hour);
+  if (dom === "*" && mon === "*" && dow === "*") return `Daily at ${at}`;
+  if (dom === "*" && mon === "*" && dow !== "*") return `Weekly at ${at}`;
+  return cron;
+}
+
 export default async function DatabaseBackupsPage({
   params,
 }: {
@@ -37,14 +56,14 @@ export default async function DatabaseBackupsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-sm text-muted">
-          Daily auto (cron{" "}
-          <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs">
-            {env.BACKUP_CRON}
-          </code>
-          ) · {env.BACKUP_RETENTION_DAYS}-day retention · pg_dump → S3
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="text-base font-semibold">Backups</h2>
+          <p className="mt-1 text-sm text-muted">
+            {humanizeCron(env.BACKUP_CRON)} · {env.BACKUP_RETENTION_DAYS}-day
+            retention · pg_dump → S3
+          </p>
+        </div>
         <ActionForm
           action={backupDatabaseNowAction}
           label="Backup now"
@@ -63,7 +82,6 @@ export default async function DatabaseBackupsPage({
             <tr>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Size</th>
-              <th className="px-4 py-3 font-medium">Location</th>
               <th className="px-4 py-3 font-medium">Time</th>
               <th className="px-4 py-3 font-medium"></th>
             </tr>
@@ -71,7 +89,7 @@ export default async function DatabaseBackupsPage({
           <tbody>
             {items.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-muted">
+                <td colSpan={4} className="px-4 py-10 text-center text-muted">
                   No backups yet.
                 </td>
               </tr>
@@ -96,12 +114,9 @@ export default async function DatabaseBackupsPage({
                 <td className="px-4 py-3 tabular-nums">
                   {formatBytes(b.sizeBytes)}
                 </td>
-                <td className="px-4 py-3">
-                  <code className="text-xs text-muted">
-                    {b.location ?? "—"}
-                  </code>
+                <td className="px-4 py-3 text-muted">
+                  {formatDate(b.createdAt)}
                 </td>
-                <td className="px-4 py-3 text-muted">{formatDate(b.createdAt)}</td>
                 <td className="px-4 py-3 text-right">
                   {b.status === "success" && b.location && (
                     <a
