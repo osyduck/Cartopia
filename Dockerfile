@@ -17,6 +17,12 @@ RUN npm ci
 FROM node:20-alpine AS builder
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
+# Build-time placeholders only. env.ts runs schema.parse(process.env) at module
+# load, so the required vars (METADATA_DATABASE_URL, APP_SECRET) must be present
+# for `next build` to collect page data. Real values are injected at runtime via
+# .env.production (env_file in docker-compose.prod.yml) — these never ship.
+ENV METADATA_DATABASE_URL="postgres://build:build@localhost:5432/build"
+ENV APP_SECRET="build-time-placeholder-secret-32-bytes-minimum"
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
