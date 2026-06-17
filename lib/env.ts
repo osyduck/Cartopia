@@ -14,6 +14,7 @@ const schema = z.object({
   DATAPLANE_ADMIN_PASSWORD: z.string().default("dataplane_super_pw"),
   DATAPLANE_POOLER_HOST: z.string().default("localhost"),
   DATAPLANE_POOLER_PORT: z.coerce.number().int().default(6432),
+  DATAPLANE_POOLER_SESSION_PORT: z.coerce.number().int().default(6433),
 
   REDIS_URL: z.string().default("redis://localhost:6379"),
 

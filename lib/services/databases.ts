@@ -9,23 +9,106 @@ import {
   type DbRole,
 } from "@/lib/db/schema";
 import * as dp from "@/lib/dataplane";
-import { generatePassword } from "@/lib/crypto";
+import { generatePassword, encryptSecret, decryptSecret } from "@/lib/crypto";
 import { assertIdentifier } from "@/lib/dataplane/identifiers";
 import { writeAudit } from "@/lib/audit";
 
 export type AccessMode = dp.AccessMode;
 
-/** Build a libpq URL pointed at the instance's pooler. */
+function uri(
+  host: string,
+  port: number,
+  dbName: string,
+  role: string,
+  password?: string | null,
+): string {
+  const auth = password ? `${role}:${encodeURIComponent(password)}` : role;
+  return `postgresql://${auth}@${host}:${port}/${dbName}`;
+}
+
+/** Build a libpq URL pointed at the instance's transaction pooler. */
 export function connectionString(opts: {
   instance: Instance;
   dbName: string;
   role: string;
   password?: string;
 }): string {
-  const auth = opts.password
-    ? `${opts.role}:${encodeURIComponent(opts.password)}`
-    : opts.role;
-  return `postgresql://${auth}@${opts.instance.poolerHost}:${opts.instance.poolerPort}/${opts.dbName}`;
+  return uri(
+    opts.instance.poolerHost,
+    opts.instance.poolerPort,
+    opts.dbName,
+    opts.role,
+    opts.password,
+  );
+}
+
+export type ConnMethodKey = "transaction" | "session" | "direct";
+
+export type ConnMethod = {
+  key: ConnMethodKey;
+  label: string;
+  recommended: boolean;
+  description: string;
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  password: string | null;
+  connectionString: string;
+};
+
+/** The three connection methods (transaction / session pooler, direct). */
+export function buildConnectionMethods(opts: {
+  instance: Instance;
+  dbName: string;
+  username: string;
+  password: string | null;
+}): ConnMethod[] {
+  const { instance, dbName, username, password } = opts;
+  const make = (
+    key: ConnMethodKey,
+    label: string,
+    description: string,
+    host: string,
+    port: number,
+    recommended = false,
+  ): ConnMethod => ({
+    key,
+    label,
+    recommended,
+    description,
+    host,
+    port,
+    database: dbName,
+    username,
+    password,
+    connectionString: uri(host, port, dbName, username, password),
+  });
+
+  return [
+    make(
+      "transaction",
+      "Transaction Pooler",
+      "Direkomendasikan untuk sebagian besar aplikasi (pooling per-transaksi).",
+      instance.poolerHost,
+      instance.poolerPort,
+      true,
+    ),
+    make(
+      "session",
+      "Session Pooler",
+      "Untuk koneksi yang butuh sesi penuh (SET, advisory lock, prepared statement).",
+      instance.poolerHost,
+      instance.poolerSessionPort,
+    ),
+    make(
+      "direct",
+      "Direct Connection",
+      "Koneksi langsung ke PostgreSQL, melewati pooler.",
+      instance.host,
+      instance.port,
+    ),
+  ];
 }
 
 /** Picks the online instance currently hosting the fewest databases. */
@@ -93,6 +176,8 @@ export type DatabaseDetail = {
   instance: Instance;
   roles: DbRole[];
   sizeBytes: number | null;
+  /** Decrypted owner password, or null if it was never stored (legacy rows). */
+  ownerPassword: string | null;
 };
 
 export async function getDatabaseDetail(
@@ -118,7 +203,12 @@ export async function getDatabaseDetail(
     .databaseSize(instance, row.name)
     .catch(() => null);
 
-  return { database: row, instance, roles, sizeBytes };
+  const owner = roles.find((r) => r.isOwner);
+  const ownerPassword = owner?.passwordEnc
+    ? decryptSecret(owner.passwordEnc)
+    : null;
+
+  return { database: row, instance, roles, sizeBytes, ownerPassword };
 }
 
 // ─── Mutations ───────────────────────────────────────────────────────────────
@@ -166,6 +256,7 @@ export async function provisionDatabase(opts: {
     databaseId: inserted.id,
     roleName: ownerRole,
     isOwner: true,
+    passwordEnc: encryptSecret(password),
     connectionLimit: opts.connectionLimit,
   });
 
@@ -273,6 +364,7 @@ export async function addRole(opts: {
     databaseId: database.id,
     roleName,
     isOwner: false,
+    passwordEnc: encryptSecret(password),
     connectionLimit: opts.connectionLimit,
   });
 
@@ -337,6 +429,10 @@ export async function resetRolePassword(
 
   const password = generatePassword();
   await dp.setPassword(instance, role.roleName, password);
+  await db
+    .update(dbRoles)
+    .set({ passwordEnc: encryptSecret(password) })
+    .where(eq(dbRoles.id, roleId));
 
   await writeAudit({
     actor,

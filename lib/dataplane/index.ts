@@ -334,6 +334,14 @@ export async function allDatabaseSizes(
   return new Map(rows.map((r) => [r.datname, Number(r.size)]));
 }
 
+/** Major.minor PostgreSQL version string, e.g. "17.6". */
+export async function serverVersion(instance: Instance): Promise<string> {
+  const { rows } = await adminPool(instance, "postgres").query<{ v: string }>(
+    "SELECT current_setting('server_version') AS v",
+  );
+  return rows[0]?.v ?? "";
+}
+
 /** Liveness probe for the Monitoring page. */
 export async function pingInstance(instance: Instance): Promise<boolean> {
   try {

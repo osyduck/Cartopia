@@ -113,6 +113,21 @@ npm run backup:now      # one-off backup of every db + prune
 npx tsx --env-file=.env.local scripts/restore-test.ts   # restore a backup into a temp db
 ```
 
+## Database detail (Supabase-style)
+
+Each database has its own tabbed page (`/databases/[id]`):
+
+- **Header** — name + status, `PostgreSQL vN · Created on …`, Refresh, and three
+  stat cards (storage usage, live active connections, role count).
+- **Overview** — **Connection Methods** with three tabs: **Transaction Pooler**
+  (6432) · **Session Pooler** (6433, a second PgBouncer in session mode) ·
+  **Direct Connection** (5432). Each breaks out Host / Port / Database Name /
+  Username / Password / Connection String with copy buttons. Role passwords are
+  stored AES-GCM-encrypted (`db_roles.password_enc`) so they can be shown again.
+- **Monitor** — per-database connections, cache hit ratio, size + 24h sparkline.
+- **Backups** — this database's backups, "Backup now", restore, and download.
+- **Settings** — roles/users manager + danger zone (read-only, delete).
+
 ## Roadmap
 
 - **Phase 4** — multi-node routing, PITR (WAL/pgBackRest), hard quotas

@@ -40,6 +40,7 @@ async function main() {
       adminPasswordEnc: encryptSecret(env.DATAPLANE_ADMIN_PASSWORD),
       poolerHost: env.DATAPLANE_POOLER_HOST,
       poolerPort: env.DATAPLANE_POOLER_PORT,
+      poolerSessionPort: env.DATAPLANE_POOLER_SESSION_PORT,
     });
     console.log("✓ default instance created");
   } else {

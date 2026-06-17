@@ -62,9 +62,11 @@ export const instances = pgTable("instances", {
   adminUser: text("admin_user").notNull(),
   /** AES-GCM ciphertext of the admin password, keyed by APP_SECRET. */
   adminPasswordEnc: text("admin_password_enc").notNull(),
-  /** Where end-user connection strings point (PgBouncer). */
+  /** Where end-user connection strings point (PgBouncer transaction mode). */
   poolerHost: text("pooler_host").notNull(),
   poolerPort: integer("pooler_port").notNull().default(6432),
+  /** Session-mode pooler port (PgBouncer, session pool_mode). */
+  poolerSessionPort: integer("pooler_session_port").notNull().default(6433),
   status: instanceStatus("status").notNull().default("online"),
   maxDatabases: integer("max_databases").notNull().default(100),
   lastCheckedAt: timestamp("last_checked_at", { withTimezone: true }),
@@ -104,6 +106,8 @@ export const dbRoles = pgTable(
       .references(() => databases.id, { onDelete: "cascade" }),
     roleName: text("role_name").notNull(),
     isOwner: boolean("is_owner").notNull().default(false),
+    /** AES-GCM ciphertext of the role's password (so it can be shown again). */
+    passwordEnc: text("password_enc"),
     connectionLimit: integer("connection_limit").notNull().default(-1),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

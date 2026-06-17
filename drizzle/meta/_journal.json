@@ -8,6 +8,13 @@
       "when": 1781280831204,
       "tag": "0000_known_stepford_cuckoos",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781684990799,
+      "tag": "0001_curly_captain_britain",
+      "breakpoints": true
     }
   ]
 }

@@ -7,6 +7,7 @@
 #   metadata-pg  -> localhost:5433
 #   dataplane-pg -> localhost:5432
 #   pgbouncer    -> localhost:6432   (tenant connection strings point here)
+#   pgbouncer-session -> localhost:6433 (session-mode pooler)
 #   redis        -> localhost:6379
 #   minio        -> localhost:9000 (S3 API) / 9001 (console)
 
@@ -63,6 +64,20 @@ services:
       - "6432:6432"
     volumes:
       - ./infra/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
+      - ./infra/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+
+  # Session-mode pooler (port 6433), for session-scoped workloads.
+  pgbouncer-session:
+    image: edoburu/pgbouncer:latest
+    container_name: cartopia-pgbouncer-session
+    restart: unless-stopped
+    depends_on:
+      dataplane-pg:
+        condition: service_healthy
+    ports:
+      - "6433:6433"
+    volumes:
+      - ./infra/pgbouncer/pgbouncer-session.ini:/etc/pgbouncer/pgbouncer.ini:ro
       - ./infra/pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
 
   redis:

@@ -279,20 +279,35 @@ export type BackupListItem = {
   finishedAt: Date | null;
 };
 
+const backupColumns = {
+  id: backups.id,
+  dbName: databases.name,
+  status: backups.status,
+  sizeBytes: backups.sizeBytes,
+  location: backups.location,
+  error: backups.error,
+  createdAt: backups.createdAt,
+  finishedAt: backups.finishedAt,
+};
+
 export async function listBackups(limit = 100): Promise<BackupListItem[]> {
   return db
-    .select({
-      id: backups.id,
-      dbName: databases.name,
-      status: backups.status,
-      sizeBytes: backups.sizeBytes,
-      location: backups.location,
-      error: backups.error,
-      createdAt: backups.createdAt,
-      finishedAt: backups.finishedAt,
-    })
+    .select(backupColumns)
     .from(backups)
     .innerJoin(databases, eq(backups.databaseId, databases.id))
+    .orderBy(desc(backups.createdAt))
+    .limit(limit);
+}
+
+export async function listBackupsForDatabase(
+  databaseId: string,
+  limit = 50,
+): Promise<BackupListItem[]> {
+  return db
+    .select(backupColumns)
+    .from(backups)
+    .innerJoin(databases, eq(backups.databaseId, databases.id))
+    .where(eq(backups.databaseId, databaseId))
     .orderBy(desc(backups.createdAt))
     .limit(limit);
 }
