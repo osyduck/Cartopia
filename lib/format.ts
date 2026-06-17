@@ -12,6 +12,19 @@ export function formatPercent(ratio: number | null | undefined): string {
   return `${(ratio * 100).toFixed(1)}%`;
 }
 
+/** Human duration from milliseconds: "725.4ms" / "77.1s". */
+export function formatDuration(ms: number | null | undefined): string {
+  if (ms == null) return "—";
+  if (ms < 1000) return `${ms.toFixed(1)}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+/** Compact integer with thousands separators: 12100 -> "12,100". */
+export function formatCount(n: number | null | undefined): string {
+  if (n == null) return "—";
+  return n.toLocaleString("en-US");
+}
+
 export function formatDate(d: Date | string | null | undefined): string {
   if (!d) return "—";
   const date = typeof d === "string" ? new Date(d) : d;

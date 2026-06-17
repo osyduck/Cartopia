@@ -334,6 +334,64 @@ export async function allDatabaseSizes(
   return new Map(rows.map((r) => [r.datname, Number(r.size)]));
 }
 
+export type QueryStat = {
+  query: string;
+  calls: number;
+  totalTimeMs: number;
+  meanTimeMs: number;
+  rows: number;
+};
+
+export type QuerySort = "slowest" | "total" | "calls";
+
+const QUERY_SORT_COLUMN: Record<QuerySort, string> = {
+  slowest: "mean_exec_time",
+  total: "total_exec_time",
+  calls: "calls",
+};
+
+/**
+ * Top queries for a database from pg_stat_statements (cluster-wide view,
+ * filtered by dbid). Returns null if the extension isn't installed.
+ */
+export async function queryStats(
+  instance: Instance,
+  dbName: string,
+  sort: QuerySort,
+  limit = 15,
+): Promise<QueryStat[] | null> {
+  assertIdentifier(dbName, "database name");
+  const orderBy = QUERY_SORT_COLUMN[sort]; // fixed whitelist, safe to inline
+  try {
+    const { rows } = await adminPool(instance, "postgres").query<{
+      query: string;
+      calls: string;
+      total_exec_time: number;
+      mean_exec_time: number;
+      rows: string;
+    }>(
+      format(
+        `SELECT query, calls, total_exec_time, mean_exec_time, rows
+           FROM pg_stat_statements
+          WHERE dbid = (SELECT oid FROM pg_database WHERE datname = %L)
+          ORDER BY ${orderBy} DESC NULLS LAST
+          LIMIT %s`,
+        dbName,
+        limit,
+      ),
+    );
+    return rows.map((r) => ({
+      query: r.query,
+      calls: Number(r.calls),
+      totalTimeMs: Number(r.total_exec_time),
+      meanTimeMs: Number(r.mean_exec_time),
+      rows: Number(r.rows),
+    }));
+  } catch {
+    return null; // pg_stat_statements not available
+  }
+}
+
 /** Major.minor PostgreSQL version string, e.g. "17.6". */
 export async function serverVersion(instance: Instance): Promise<string> {
   const { rows } = await adminPool(instance, "postgres").query<{ v: string }>(

@@ -124,7 +124,9 @@ Each database has its own tabbed page (`/databases/[id]`):
   **Direct Connection** (5432). Each breaks out Host / Port / Database Name /
   Username / Password / Connection String with copy buttons. Role passwords are
   stored AES-GCM-encrypted (`db_roles.password_enc`) so they can be shown again.
-- **Monitor** — per-database connections, cache hit ratio, size + 24h sparkline.
+- **Monitor** — stat cards (active connections vs cap, size vs quota, cache hit
+  ratio, live status) plus a **Query Performance** table powered by
+  `pg_stat_statements` (toggle Slowest / Most Time / Most Called).
 - **Backups** — this database's backups, "Backup now", restore, and download.
 - **Settings** — roles/users manager + danger zone (read-only, delete).
 
