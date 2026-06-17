@@ -28,7 +28,8 @@ out later means registering another data-plane node, not re-architecting.
 - `pg` + `pg-format` for data-plane DDL (identifiers validated + `%I`-quoted)
 - Single-admin session (`jose` JWT cookie + `bcryptjs`)
 - PgBouncer (transaction pooling, `auth_query`)
-- Planned: BullMQ + Redis worker (quota/metrics/backups), MinIO/S3 backups
+- BullMQ + Redis worker — quota sweep, metrics sampling, scheduled backups
+- MinIO / S3 — `pg_dump -Fc` backup object storage
 
 ## Prerequisites
 
@@ -52,88 +53,114 @@ npm run db:migrate
 npm run db:seed
 
 # 5. run
-npm run dev       # http://localhost:3000  (control panel)
-npm run worker    # background quota sweep (BullMQ, every 60s)
+npm run dev       # http://localhost:3000  → public landing page → Sign in → panel
+npm run worker    # background jobs: quota sweep + metrics + backups (BullMQ)
 ```
 
-Log in with `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env.local`
-(default `admin@cartopia.local` / `changeme123`).
+Open `http://localhost:3000` for the **landing page**. Click **Sign in** and
+log in with `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env.local`
+(default `admin@cartopia.local` / `changeme123`) — you'll land on the databases
+list. Unauthenticated visitors stay on the public landing page; authenticated
+users hitting `/` or `/login` skip straight to `/databases`.
 
-## What works today (Phase 1)
+## Features
+
+### Provisioning & access
 
 - Single-admin auth (login + route protection via `proxy.ts`)
 - Create / drop databases — each gets a dedicated owner role, `REVOKE CONNECT
   FROM PUBLIC`, schema ownership, connection + statement limits
 - Add / remove extra roles with **read** or **read-write** access
-- Reset role passwords (shown once, never stored)
-- Per-database storage usage + quota bar; **read-only** toggle (quota
-  enforcement primitive — blocks writes, allows reads + DELETE)
-- Connection strings pointed at PgBouncer
-- Audit log of every mutating action
+- Reset role passwords (shown once; role passwords are AES-GCM-encrypted in
+  `db_roles.password_enc` so they can be revealed again)
+- Cross-database isolation enforced — a tenant role cannot connect to other
+  databases or to the `postgres`/`template1` maintenance databases
+  (see `infra/dataplane-init/02-lockdown.sql`)
 
-Cross-database isolation is enforced: a tenant role cannot connect to other
-databases or to the `postgres`/`template1` maintenance databases
-(see `infra/dataplane-init/02-lockdown.sql`).
+### Connection methods
 
-## Phase 2 (done)
+Each database's **Overview** tab (`/databases/[id]`) shows three connection
+modes as a segmented control: **Transaction Pooler** (6432) · **Session Pooler**
+(6433, a second PgBouncer in session mode) · **Direct Connection** (5432). Each
+breaks out Host / Port / Database Name / Username / Password / Connection
+String with copy buttons. The connection string is masked by default (Show/Hide
+toggle), and a **Copy .env** button exports the full `PGHOST`…`DATABASE_URL`
+block at once.
 
-- **Quota sweep** (`lib/services/quota.ts`) — samples `pg_database_size` per
-  database, records usage snapshots, and drives a soft quota state machine:
-  warn at 80% → enforce read-only at 100% (kicks live sessions) → recover when
-  it drops back under 95% (hysteresis). Each transition logs a `quota_events`
-  row + a notification (and POSTs to `ALERT_WEBHOOK_URL` if set —
-  Discord/Slack/generic).
-- **BullMQ worker** (`worker/index.ts`) — repeatable job runs the sweep every
-  `QUOTA_SWEEP_INTERVAL_SECONDS` (default 60). Run with `npm run worker`.
-- **UI** — alert banner + usage bars/% + status badges on the databases list, a
-  manual "Quota sweep" button, and a Quota events feed on the overview.
+### Quota enforcement
+
+`lib/services/quota.ts` samples `pg_database_size` per database, records usage
+snapshots, and drives a soft quota state machine: **warn at 80% → enforce
+read-only at 100% (kicks live sessions) → recover under 95%** (hysteresis). Each
+transition logs a `quota_events` row + a notification (and POSTs to
+`ALERT_WEBHOOK_URL` if set — Discord/Slack/generic). The BullMQ worker runs the
+sweep every `QUOTA_SWEEP_INTERVAL_SECONDS` (default 60). The databases list
+shows an alert banner + usage bars/% + status badges, plus a manual "Quota
+sweep" button.
 
 One-off sweep without the worker: `npm run quota:sweep`.
 
-## Phase 3 (done)
+### Monitoring
 
-- **Monitoring** (`lib/services/monitoring.ts` + `/monitoring`) — per-database
-  active connections, total connections, cache hit ratio and size, plus
-  per-instance health (online/unreachable via ping) and a 24h size sparkline.
-  Sampled into `metric_snapshots` by a `monitor-sweep` worker job.
-- **Backups** (`lib/services/backups.ts` + `/backups`) — daily `pg_dump -Fc`
-  per database streamed straight to MinIO/S3, recorded in `backups`, with a
-  rolling **7-day retention** prune. Runs on a cron (`BACKUP_CRON`, default
-  02:00) plus a manual "Backup now" button.
-- **Restore & download** — restore any backup into a fresh managed database
-  (owner role + metadata provisioned, then `pg_restore --no-owner --role`
-  streamed from S3, rolled back on failure) straight from the Backups page, or
-  download the raw `.dump` via an auth-gated route (`/backups/[id]/download`).
-
-The worker now schedules three jobs: `quota-sweep`, `monitor-sweep` (each every
-60s) and `backup-all` (daily cron + prune).
+Per-database **Monitor** tab (`/databases/[id]/monitor`) — active connections
+vs the role connection cap, database size vs quota, cache hit ratio, and a
+**Query Performance** table powered by `pg_stat_statements` (toggle Slowest /
+Most Time / Most Called; cumulative since `pg_stat_statements` was last reset).
+Status reads **Connected** / **Unreachable** with the last sample time.
+Metrics are sampled into `metric_snapshots` by a `monitor-sweep` worker job.
 
 ```bash
 npm run monitor:sweep   # one-off metrics + health sample
+```
+
+### Backups & restore
+
+Per-database **Backups** tab (`/databases/[id]/backups`) — daily `pg_dump -Fc`
+streamed straight to MinIO/S3, recorded in `backups`, with a rolling **7-day
+retention** prune. Runs on a cron (`BACKUP_CRON`, default daily at 2:00 AM)
+plus a manual "Backup now" button. **Restore** any backup into a fresh managed
+database (owner role + metadata provisioned, then `pg_restore --no-owner --role`
+streamed from S3, rolled back on failure), or download the raw `.dump` via an
+auth-gated route (`/backups/[id]/download`).
+
+```bash
 npm run backup:now      # one-off backup of every db + prune
 npx tsx --env-file=.env.local scripts/restore-test.ts   # restore a backup into a temp db
 ```
 
-## Database detail (Supabase-style)
+### Audit log
 
-Each database has its own tabbed page (`/databases/[id]`):
+`/audit` — every mutating admin action (database created, role added, password
+reset, restore, quota sweep) recorded with actor + timestamp. Server-side
+paginated (50 per page) with a windowed page-number control.
 
-- **Header** — name + status, `PostgreSQL vN · Created on …`, Refresh, and three
-  stat cards (storage usage, live active connections, role count).
-- **Overview** — **Connection Methods** with three tabs: **Transaction Pooler**
-  (6432) · **Session Pooler** (6433, a second PgBouncer in session mode) ·
-  **Direct Connection** (5432). Each breaks out Host / Port / Database Name /
-  Username / Password / Connection String with copy buttons. Role passwords are
-  stored AES-GCM-encrypted (`db_roles.password_enc`) so they can be shown again.
-- **Monitor** — stat cards (active connections vs cap, size vs quota, cache hit
-  ratio, live status) plus a **Query Performance** table powered by
-  `pg_stat_statements` (toggle Slowest / Most Time / Most Called).
-- **Backups** — this database's backups, "Backup now", restore, and download.
-- **Settings** — roles/users manager + danger zone (read-only, delete).
+## Database detail
+
+Each database has its own tabbed page at `/databases/[id]`:
+
+- **Header** — back link, name + status badge, `PostgreSQL vN · Created on …`,
+  Refresh.
+- **Overview** — three summary stat cards (storage usage, active connections,
+  roles) + **Connection Methods** (see above).
+- **Monitor** — metric cards + Query Performance table.
+- **Backups** — this database's backups, "Backup now", restore, download.
+- **Settings** — roles/users manager (table + inline add-role panel) + a
+  GitHub-style **Danger zone** (read-only toggle with state-aware microcopy,
+  delete database with consequence description).
+
+## Design system
+
+The visual identity is locked in `PRODUCT.md` (product register, users,
+principles) and `DESIGN.md` (tokens, components, patterns, bans). Theme: dark
+graphite with a honey-amber primary (`oklch(0.70 0.150 52)`), OKLCH tokens in
+`app/globals.css`, elevation utilities for depth, Geist Sans + Geist Mono via
+`next/font`. The public landing page at `/` is built on the same system.
 
 ## Roadmap
 
-- **Phase 4** — multi-node routing, PITR (WAL/pgBackRest), hard quotas
+- Multi-node routing
+- PITR (WAL / pgBackRest)
+- Hard quotas (disk-level enforcement)
 
 ## Useful scripts
 
@@ -147,11 +174,18 @@ npx tsx --env-file=.env.local scripts/smoke-dataplane.ts   # provisioning smoke 
 ## Layout
 
 ```
-app/(panel)/        authenticated UI (databases, monitoring, backups, audit)
-app/login/          login page + action
-lib/db/             Drizzle schema + metadata client
-lib/dataplane/      provisioning ops, identifier validation, admin pools
-lib/services/       metadata <-> data-plane orchestration
-lib/auth/           session (jwt) + password hashing
-infra/              docker init SQL + pgbouncer config
+app/page.tsx              public landing page (no auth)
+app/login/                login page + action
+app/(panel)/overview/     panel overview — fleet health + capacity
+app/(panel)/databases/    databases list + create form
+app/(panel)/databases/[id]/   db detail: Overview / Monitor / Backups / Settings tabs
+app/(panel)/audit/        audit log (paginated)
+app/(panel)/backups/      backup download route (auth-gated, no list page)
+lib/db/                   Drizzle schema + metadata client
+lib/dataplane/            provisioning ops, identifier validation, admin pools
+lib/services/             metadata <-> data-plane orchestration
+lib/auth/                 session (jwt) + password hashing
+infra/                    docker init SQL + pgbouncer config
+PRODUCT.md                product context, register, principles
+DESIGN.md                 locked design system (tokens, components, patterns)
 ```
