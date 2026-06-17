@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-import { Plus } from "lucide-react";
+import { useActionState, useEffect, useState } from "react";
+import { Plus, X } from "lucide-react";
 import {
   addRoleAction,
   resetPasswordAction,
@@ -38,8 +38,14 @@ export function RolesManager({
     resetPasswordAction,
     {},
   );
+  const [showAdd, setShowAdd] = useState(false);
 
   const reveal = addState.reveal ?? resetState.reveal;
+
+  // Close the add-role panel once a role is successfully created.
+  useEffect(() => {
+    if (addState.reveal) setShowAdd(false);
+  }, [addState.reveal]);
 
   return (
     <div className="space-y-4">
@@ -50,7 +56,7 @@ export function RolesManager({
               <th className="px-4 py-3 font-medium">Role</th>
               <th className="px-4 py-3 font-medium">Type</th>
               <th className="px-4 py-3 font-medium">Conn limit</th>
-              <th className="px-4 py-3 font-medium text-right">Actions</th>
+              <th className="px-4 py-3 text-right font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -87,18 +93,14 @@ export function RolesManager({
                         name="databaseId"
                         value={databaseId}
                       />
-                      <SubmitButton
-                        variant="ghost"
-                        size="sm"
-                        pendingText="…"
-                      >
+                      <SubmitButton variant="ghost" size="sm" pendingText="…">
                         Reset password
                       </SubmitButton>
                     </form>
                     {!r.isOwner && (
                       <ActionForm
                         action={deleteRoleAction}
-                        confirm={`Delete role “${r.roleName}”?`}
+                        confirm={`Delete role "${r.roleName}"?`}
                         label="Delete"
                         variant="danger"
                       >
@@ -120,53 +122,73 @@ export function RolesManager({
 
       {reveal && <SecretReveal data={reveal} />}
 
-      <details className="rounded-xl border border-border bg-surface-2/40 p-4">
-        <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+      {showAdd ? (
+        <div className="rounded-xl border border-border bg-surface elevation-1 p-5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold">New role</h3>
+            <button
+              type="button"
+              onClick={() => setShowAdd(false)}
+              aria-label="Close"
+              className="rounded-md p-1 text-faint transition-colors hover:bg-surface-2 hover:text-text"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+          <form action={addAction} className="mt-4 space-y-4">
+            <input type="hidden" name="databaseId" value={databaseId} />
+            <div className="grid gap-4 sm:grid-cols-3">
+              <label className="space-y-1.5">
+                <span className="text-sm text-muted">Role name</span>
+                <input
+                  name="roleName"
+                  required
+                  placeholder="app_reader"
+                  className={field}
+                />
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-sm text-muted">Access</span>
+                <select
+                  name="mode"
+                  defaultValue="readwrite"
+                  className={field}
+                >
+                  <option value="readwrite">Read &amp; write</option>
+                  <option value="read">Read only</option>
+                </select>
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-sm text-muted">Connection limit</span>
+                <input
+                  name="connectionLimit"
+                  type="number"
+                  min={-1}
+                  defaultValue={-1}
+                  className={field}
+                />
+              </label>
+            </div>
+            {addState.error && (
+              <p className="rounded-lg border border-danger/25 bg-danger/8 px-3 py-2 text-sm text-danger">
+                {addState.error}
+              </p>
+            )}
+            <div className="flex justify-end">
+              <SubmitButton pendingText="Creating…">Add role</SubmitButton>
+            </div>
+          </form>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowAdd(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border-strong bg-surface-2/20 px-4 py-3 text-sm text-muted transition-colors hover:bg-surface-2/50 hover:text-text"
+        >
           <Plus className="size-4" />
           Add user/role
-        </summary>
-        <form action={addAction} className="mt-4 space-y-4">
-          <input type="hidden" name="databaseId" value={databaseId} />
-          <div className="grid gap-4 sm:grid-cols-3">
-            <label className="space-y-1.5">
-              <span className="text-sm text-muted">Role name</span>
-              <input
-                name="roleName"
-                required
-                placeholder="app_reader"
-                className={field}
-              />
-            </label>
-            <label className="space-y-1.5">
-              <span className="text-sm text-muted">Access</span>
-              <select
-                name="mode"
-                defaultValue="readwrite"
-                className={field}
-              >
-                <option value="readwrite">Read &amp; write</option>
-                <option value="read">Read only</option>
-              </select>
-            </label>
-            <label className="space-y-1.5">
-              <span className="text-sm text-muted">Connection limit</span>
-              <input
-                name="connectionLimit"
-                type="number"
-                min={-1}
-                defaultValue={-1}
-                className={field}
-              />
-            </label>
-          </div>
-          {addState.error && (
-            <p className="rounded-lg border border-danger/25 bg-danger/8 px-3 py-2 text-sm text-danger">
-              {addState.error}
-            </p>
-          )}
-          <SubmitButton pendingText="Creating…">Add role</SubmitButton>
-        </form>
-      </details>
+        </button>
+      )}
     </div>
   );
 }
