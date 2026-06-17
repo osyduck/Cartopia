@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cartopia",
+  title: { default: "Cartopia", template: "%s · Cartopia" },
   description: "PostgreSQL database-as-a-service control panel",
 };
 
