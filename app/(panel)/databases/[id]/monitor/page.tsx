@@ -41,11 +41,11 @@ export default async function DatabaseMonitorPage({
     slowest && total && calls ? { slowest, total, calls } : null;
 
   // Active connections vs the database's connection cap (max role limit).
-  const connLimit =
-    Math.max(0, ...roles.map((r) => r.connectionLimit).filter((n) => n > 0)) ||
-    100; // fallback display cap when all roles are unlimited
+  // When every role is unlimited there is no real cap — connLimit stays null.
+  const limits = roles.map((r) => r.connectionLimit).filter((n) => n > 0);
+  const connLimit = limits.length ? Math.max(...limits) : null;
   const active = metrics?.activeConnections ?? 0;
-  const connPct = connLimit ? (active / connLimit) * 100 : 0;
+  const connPct = connLimit != null ? (active / connLimit) * 100 : null;
 
   const sizePct =
     database.quotaBytes && sizeBytes != null
@@ -71,13 +71,20 @@ export default async function DatabaseMonitorPage({
         <div className="rounded-xl border border-border bg-surface elevation-1 p-5">
           <div className="text-sm text-muted">Active Connections</div>
           <div className="mt-1 text-2xl font-semibold tabular-nums">
-            {active} <span className="text-base text-muted">/ {connLimit}</span>
+            {active}
+            {connLimit != null && (
+              <span className="text-base text-muted"> / {connLimit}</span>
+            )}
           </div>
-          <Bar
-            pct={connPct}
-            tone={connPct >= 90 ? "bg-danger" : "bg-success"}
-          />
-          <div className="mt-2 text-xs text-faint">connection limit</div>
+          {connPct != null && (
+            <Bar
+              pct={connPct}
+              tone={connPct >= 90 ? "bg-danger" : "bg-success"}
+            />
+          )}
+          <div className="mt-2 text-xs text-faint">
+            {connLimit != null ? "connection limit" : "unlimited"}
+          </div>
         </div>
 
         {/* Database size */}
@@ -140,7 +147,7 @@ export default async function DatabaseMonitorPage({
         <div className="rounded-xl border border-border bg-surface elevation-1 p-5">
           <div className="text-sm text-muted">Monitoring Status</div>
           <div className="mt-1 flex items-center gap-2 text-2xl font-semibold">
-            {metrics ? "Live" : "Down"}
+            {metrics ? "Connected" : "Unreachable"}
             <span
               className={
                 "size-2.5 rounded-full " +
@@ -153,7 +160,7 @@ export default async function DatabaseMonitorPage({
               ? "instance unreachable"
               : lastMetricAt
                 ? `Last sample ${formatRelative(lastMetricAt)}`
-                : "Live · on-demand"}
+                : "On-demand"}
           </div>
         </div>
       </div>

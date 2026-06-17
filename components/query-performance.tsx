@@ -26,8 +26,14 @@ export function QueryPerformance({
 
   return (
     <section className="overflow-hidden rounded-xl border border-border bg-surface elevation-1">
-      <div className="flex items-center justify-between gap-4 p-5">
-        <h2 className="text-sm font-semibold">Query Performance</h2>
+      <div className="flex items-start justify-between gap-4 p-5">
+        <div>
+          <h2 className="text-sm font-semibold">Query Performance</h2>
+          <p className="mt-0.5 text-xs text-faint">
+            Cumulative since <code className="font-mono">pg_stat_statements</code>{" "}
+            reset
+          </p>
+        </div>
         <div className="flex rounded-lg border border-border bg-surface-2 p-0.5 text-xs">
           {TABS.map((t) => (
             <button
