@@ -180,7 +180,7 @@ export async function restoreBackup(
     .limit(1);
   if (!b) throw new Error("Backup not found.");
   if (b.backup.status !== "success" || !b.backup.location) {
-    throw new Error("Backup ini tidak punya object yang bisa di-restore.");
+    throw new Error("This backup has no object to restore from.");
   }
 
   const provisioned = await provisionDatabase({

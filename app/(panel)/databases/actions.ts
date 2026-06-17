@@ -19,7 +19,7 @@ const identifier = z
   .string()
   .trim()
   .toLowerCase()
-  .refine(isValidIdentifier, "Hanya huruf kecil, angka, dan underscore (mulai dengan huruf), maks 63 karakter.");
+  .refine(isValidIdentifier, "Lowercase letters, digits, and underscores (start with a letter), max 63 chars.");
 
 // State carries a one-time secret block to show after creation.
 export type SecretReveal = {
@@ -35,7 +35,7 @@ export type ActionState = {
 };
 
 const createSchema = z.object({
-  name: identifier.refine((v) => v.length <= 56, "Maks 56 karakter."),
+  name: identifier.refine((v) => v.length <= 56, "Max 56 characters."),
   quotaMb: z.coerce.number().int().min(0).max(10_485_760).default(0),
   connectionLimit: z.coerce.number().int().min(-1).max(10_000).default(-1),
 });
@@ -51,7 +51,7 @@ export async function createDatabaseAction(
     connectionLimit: formData.get("connectionLimit") || -1,
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Input tidak valid." };
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
   try {
@@ -64,7 +64,7 @@ export async function createDatabaseAction(
     revalidatePath("/databases");
     return {
       reveal: {
-        title: `Database "${parsed.data.name}" dibuat`,
+        title: `Database "${parsed.data.name}" created`,
         role: result.ownerRole,
         password: result.password,
         connectionString: result.connectionString,
@@ -100,7 +100,7 @@ export async function toggleReadOnlyAction(formData: FormData): Promise<void> {
 
 const addRoleSchema = z.object({
   databaseId: z.uuid(),
-  roleName: identifier.refine((v) => v.length <= 63, "Maks 63 karakter."),
+  roleName: identifier.refine((v) => v.length <= 63, "Max 63 characters."),
   mode: z.enum(["read", "readwrite"]),
   connectionLimit: z.coerce.number().int().min(-1).max(10_000).default(-1),
 });
@@ -117,7 +117,7 @@ export async function addRoleAction(
     connectionLimit: formData.get("connectionLimit") || -1,
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Input tidak valid." };
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
   try {
@@ -131,7 +131,7 @@ export async function addRoleAction(
     revalidatePath(`/databases/${parsed.data.databaseId}`);
     return {
       reveal: {
-        title: `Role "${result.roleName}" dibuat`,
+        title: `Role "${result.roleName}" created`,
         role: result.roleName,
         password: result.password,
         connectionString: result.connectionString,
@@ -162,7 +162,7 @@ export async function resetPasswordAction(
     revalidatePath(`/databases/${databaseId}`);
     return {
       reveal: {
-        title: `Password "${result.roleName}" direset`,
+        title: `Password "${result.roleName}" reset`,
         role: result.roleName,
         password: result.password,
         connectionString: result.connectionString,

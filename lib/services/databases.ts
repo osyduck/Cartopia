@@ -89,7 +89,7 @@ export function buildConnectionMethods(opts: {
     make(
       "transaction",
       "Transaction Pooler",
-      "Direkomendasikan untuk sebagian besar aplikasi (pooling per-transaksi).",
+      "Recommended for most apps (per-transaction pooling).",
       instance.poolerHost,
       instance.poolerPort,
       true,
@@ -97,14 +97,14 @@ export function buildConnectionMethods(opts: {
     make(
       "session",
       "Session Pooler",
-      "Untuk koneksi yang butuh sesi penuh (SET, advisory lock, prepared statement).",
+      "For connections needing a full session (SET, advisory locks, prepared statements).",
       instance.poolerHost,
       instance.poolerSessionPort,
     ),
     make(
       "direct",
       "Direct Connection",
-      "Koneksi langsung ke PostgreSQL, melewati pooler.",
+      "Direct connection to PostgreSQL, bypassing the pooler.",
       instance.host,
       instance.port,
     ),

@@ -26,8 +26,8 @@ const restoreSchema = z.object({
     .string()
     .trim()
     .toLowerCase()
-    .refine(isValidIdentifier, "Hanya huruf kecil, angka, underscore (mulai huruf).")
-    .refine((v) => v.length <= 56, "Maks 56 karakter."),
+    .refine(isValidIdentifier, "Lowercase letters, digits, underscores (start with a letter).")
+    .refine((v) => v.length <= 56, "Max 56 characters."),
 });
 
 export async function restoreBackupAction(
@@ -40,7 +40,7 @@ export async function restoreBackupAction(
     newName: formData.get("newName"),
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Input tidak valid." };
+    return { error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
 
   try {
@@ -53,7 +53,7 @@ export async function restoreBackupAction(
     revalidatePath("/databases");
     return {
       reveal: {
-        title: `Restore ke database "${r.databaseName}" berhasil`,
+        title: `Restore to database "${r.databaseName}" succeeded`,
         role: r.ownerRole,
         password: r.password,
         connectionString: r.connectionString,

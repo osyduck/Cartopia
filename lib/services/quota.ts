@@ -112,8 +112,8 @@ async function enforce(
     });
     await notify({
       level: "critical",
-      title: `Database "${d.name}" melewati quota`,
-      detail: `${formatBytes(size)} / ${formatBytes(quota)} — di-set read-only`,
+      title: `Database "${d.name}" over quota`,
+      detail: `${formatBytes(size)} / ${formatBytes(quota)} — set read-only`,
     });
     return "enforced";
   }
@@ -133,8 +133,8 @@ async function enforce(
     });
     await notify({
       level: "info",
-      title: `Database "${d.name}" kembali normal`,
-      detail: `${formatBytes(size)} / ${formatBytes(quota)} — write diaktifkan`,
+      title: `Database "${d.name}" back to normal`,
+      detail: `${formatBytes(size)} / ${formatBytes(quota)} — writes enabled`,
     });
     return "recovered";
   }
@@ -156,7 +156,7 @@ async function enforce(
       });
       await notify({
         level: "warning",
-        title: `Database "${d.name}" mendekati quota`,
+        title: `Database "${d.name}" near quota`,
         detail: `${formatBytes(size)} / ${formatBytes(quota)}`,
       });
       return "warned";

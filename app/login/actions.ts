@@ -17,7 +17,7 @@ export async function login(
   const password = String(formData.get("password") ?? "");
 
   if (!email || !password) {
-    return { error: "Email dan password wajib diisi." };
+    return { error: "Email and password are required." };
   }
 
   const [admin] = await db
@@ -27,7 +27,7 @@ export async function login(
     .limit(1);
 
   if (!admin || !(await verifyPassword(password, admin.passwordHash))) {
-    return { error: "Email atau password salah." };
+    return { error: "Invalid email or password." };
   }
 
   await startSession({ id: admin.id, email: admin.email });
