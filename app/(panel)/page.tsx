@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { eq, count } from "drizzle-orm";
+import { Plus } from "lucide-react";
 import { db } from "@/lib/db";
 import { databases, dbRoles, instances } from "@/lib/db/schema";
 import { listDatabases, type DatabaseListItem } from "@/lib/services/databases";
@@ -76,21 +77,22 @@ export default async function OverviewPage() {
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="text-2xl font-semibold">Overview</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Overview</h1>
         <Link
           href="/databases"
-          className="rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-fg transition hover:opacity-90"
+          className="glow-primary inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-fg transition-colors duration-150 hover:bg-primary-hover"
         >
-          + Database baru
+          <Plus className="size-4" />
+          Database baru
         </Link>
       </div>
 
-      {/* Health + capacity — one panel, two halves */}
-      <section className="grid gap-px overflow-hidden rounded-2xl border border-border bg-border md:grid-cols-2">
+      {/* Health + capacity — two composed cards */}
+      <section className="grid gap-4 md:grid-cols-2">
         {/* Status */}
-        <div className="bg-surface p-6">
+        <div className="rounded-xl border border-border bg-surface elevation-1 p-6">
           <div className="flex items-center gap-3">
-            <span className="relative flex h-3 w-3">
+            <span className="relative flex h-3 w-3 shrink-0">
               <span
                 className={`absolute inline-flex h-full w-full rounded-full ${dot[overall]} opacity-40 motion-reduce:animate-none ${overall !== "ok" ? "animate-ping" : ""}`}
               />
@@ -107,17 +109,20 @@ export default async function OverviewPage() {
               { k: "Databases", v: dbCount.n },
               { k: "Roles", v: roleCount.n },
               { k: "Instances", v: `${instOnline.n}/${instTotal.n}` },
-            ].map((s) => (
-              <div key={s.k}>
+            ].map((s, i) => (
+              <div
+                key={s.k}
+                className={i > 0 ? "border-l border-border/60 pl-4" : ""}
+              >
                 <dd className="text-2xl font-semibold tabular-nums">{s.v}</dd>
-                <dt className="mt-0.5 text-xs text-muted">{s.k}</dt>
+                <dt className="mt-0.5 text-xs text-faint">{s.k}</dt>
               </div>
             ))}
           </dl>
         </div>
 
         {/* Capacity */}
-        <div className="bg-surface p-6">
+        <div className="rounded-xl border border-border bg-surface elevation-1 p-6">
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-sm text-muted">Storage terpakai</span>
             <span className="text-sm text-muted tabular-nums">
@@ -137,27 +142,37 @@ export default async function OverviewPage() {
 
           {/* Stacked distribution: each db's share of used storage, by health */}
           <div className="mt-4 flex h-2.5 gap-px overflow-hidden rounded-full bg-surface-2">
-            {totalUsed > 0 ? (
-              fleet
-                .filter((d) => (d.sizeBytes ?? 0) > 0)
-                .map((d) => (
-                  <div
-                    key={d.id}
-                    className={`${fill[d.h]} min-w-[3px] transition-[width]`}
-                    style={{ width: `${((d.sizeBytes ?? 0) / totalUsed) * 100}%` }}
-                    title={`${d.name} — ${formatBytes(d.sizeBytes)}`}
-                  />
-                ))
-            ) : (
-              <div className="w-full" />
-            )}
+            {totalUsed > 0
+              ? fleet
+                  .filter((d) => (d.sizeBytes ?? 0) > 0)
+                  .map((d) => (
+                    <div
+                      key={d.id}
+                      className={`${fill[d.h]} min-w-[3px] transition-[width] duration-300`}
+                      style={{
+                        width: `${((d.sizeBytes ?? 0) / totalUsed) * 100}%`,
+                      }}
+                      title={`${d.name} — ${formatBytes(d.sizeBytes)}`}
+                    />
+                  ))
+              : null}
           </div>
 
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-            <Legend tone="ok" label="sehat" n={counts.ok} />
-            <Legend tone="warning" label="mendekati" n={counts.warning} />
-            <Legend tone="over" label="lewat quota" n={counts.over} />
-            {unlimited > 0 && <span>· {unlimited} tanpa batas</span>}
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <Badge tone="success" dot>
+              <span className="tabular-nums">{counts.ok}</span> sehat
+            </Badge>
+            <Badge tone="warning" dot>
+              <span className="tabular-nums">{counts.warning}</span> mendekati
+            </Badge>
+            <Badge tone="danger" dot>
+              <span className="tabular-nums">{counts.over}</span> lewat quota
+            </Badge>
+            {unlimited > 0 && (
+              <span className="text-xs text-muted">
+                · <span className="tabular-nums">{unlimited}</span> tanpa batas
+              </span>
+            )}
           </div>
         </div>
       </section>
@@ -165,17 +180,15 @@ export default async function OverviewPage() {
       {/* The fleet */}
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">
-          <h2 className="font-medium">Databases</h2>
+          <h2 className="text-base font-semibold">Databases</h2>
           <span className="text-sm text-muted tabular-nums">
             {dbs.length} total
           </span>
         </div>
 
         {dbs.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-surface/50 p-10 text-center">
-            <p className="text-sm text-muted">
-              Belum ada database yang dikelola.
-            </p>
+          <div className="rounded-xl border border-dashed border-border bg-surface/40 p-10 text-center">
+            <p className="text-sm text-muted">Belum ada database yang dikelola.</p>
             <Link
               href="/databases"
               className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
@@ -184,67 +197,59 @@ export default async function OverviewPage() {
             </Link>
           </div>
         ) : (
-          <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
-            {fleet.map((d) => (
-              <li key={d.id}>
-                <Link
-                  href={`/databases/${d.id}`}
-                  className="flex flex-col gap-3 px-5 py-4 transition hover:bg-surface-2/50 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className={`h-2 w-2 shrink-0 rounded-full ${dot[d.h]}`}
-                    />
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{d.name}</span>
-                        {d.isReadonly && <Badge tone="danger">read-only</Badge>}
-                      </div>
-                      <div className="mt-0.5 truncate text-xs text-muted">
-                        <code>{d.ownerRole}</code> · {d.instanceName}
+          <div className="overflow-hidden rounded-xl border border-border bg-surface elevation-1">
+            <ul className="divide-y divide-border/60">
+              {fleet.map((d) => (
+                <li key={d.id}>
+                  <Link
+                    href={`/databases/${d.id}`}
+                    className="flex flex-col gap-3 px-5 py-4 transition-colors duration-150 hover:bg-surface-2/40 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`h-2 w-2 shrink-0 rounded-full ${dot[d.h]}`}
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{d.name}</span>
+                          {d.isReadonly && (
+                            <Badge tone="danger" dot>
+                              read-only
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="mt-0.5 truncate text-xs text-muted">
+                          <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs">
+                            {d.ownerRole}
+                          </code>{" "}
+                          · {d.instanceName}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-3 sm:w-64 sm:justify-end">
-                    <div className="text-right text-xs tabular-nums text-muted">
-                      <span className="text-text">
-                        {formatBytes(d.sizeBytes)}
-                      </span>{" "}
-                      / {d.quotaBytes ? formatBytes(d.quotaBytes) : "∞"}
+                    <div className="flex items-center gap-3 sm:w-64 sm:justify-end">
+                      <div className="text-right text-xs tabular-nums text-muted">
+                        <span className="text-text">
+                          {formatBytes(d.sizeBytes)}
+                        </span>{" "}
+                        / {d.quotaBytes ? formatBytes(d.quotaBytes) : "∞"}
+                      </div>
+                      <div className="h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-surface-2">
+                        {d.quotaBytes ? (
+                          <div
+                            className={`h-full rounded-full ${fill[d.h]} transition-[width] duration-300`}
+                            style={{ width: `${Math.max(2, d.pct)}%` }}
+                          />
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-surface-2">
-                      {d.quotaBytes ? (
-                        <div
-                          className={`h-full ${fill[d.h]}`}
-                          style={{ width: `${Math.max(2, d.pct)}%` }}
-                        />
-                      ) : null}
-                    </div>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </section>
     </div>
-  );
-}
-
-function Legend({
-  tone,
-  label,
-  n,
-}: {
-  tone: Health;
-  label: string;
-  n: number;
-}) {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className={`h-2 w-2 rounded-full ${dot[tone]}`} />
-      <span className="tabular-nums text-text">{n}</span> {label}
-    </span>
   );
 }
