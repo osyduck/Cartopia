@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
 import { getDatabaseDetail } from "@/lib/services/databases";
 import { RolesManager } from "@/components/roles-manager";
 import { ActionForm } from "@/components/action-form";
@@ -30,12 +31,15 @@ export default async function DatabaseSettingsPage({
   return (
     <div className="space-y-8">
       <section className="space-y-3">
-        <h2 className="font-medium">Roles &amp; users</h2>
+        <h2 className="text-base font-semibold">Roles &amp; users</h2>
         <RolesManager databaseId={database.id} roles={safeRoles} />
       </section>
 
-      <section className="rounded-2xl border border-danger/30 bg-danger/5 p-5">
-        <h2 className="font-medium text-danger">Danger zone</h2>
+      <section className="rounded-xl border border-danger/25 bg-danger/8 p-5">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-danger">
+          <AlertTriangle className="size-4 text-danger" />
+          Danger zone
+        </h2>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <ActionForm
             action={toggleReadOnlyAction}

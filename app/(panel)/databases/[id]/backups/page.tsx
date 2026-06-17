@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
 import { getDatabaseDetail } from "@/lib/services/databases";
 import { listBackupsForDatabase } from "@/lib/services/backups";
 import { Badge } from "@/components/badge";
@@ -38,12 +39,15 @@ export default async function DatabaseBackupsPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm text-muted">
-          Auto harian (cron <code>{env.BACKUP_CRON}</code>) · retensi{" "}
-          {env.BACKUP_RETENTION_DAYS} hari · pg_dump → S3
+          Auto harian (cron{" "}
+          <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs">
+            {env.BACKUP_CRON}
+          </code>
+          ) · retensi {env.BACKUP_RETENTION_DAYS} hari · pg_dump → S3
         </p>
         <ActionForm
           action={backupDatabaseNowAction}
-          label="💾 Backup now"
+          label="Backup now"
           pendingText="Membackup…"
           variant="primary"
         >
@@ -53,9 +57,9 @@ export default async function DatabaseBackupsPage({
 
       <RestoreBackupForm options={restoreOptions} />
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+      <div className="overflow-hidden rounded-xl border border-border bg-surface elevation-1">
         <table className="w-full text-sm">
-          <thead className="border-b border-border text-left text-muted">
+          <thead className="border-b border-border text-left text-xs uppercase tracking-wide text-faint">
             <tr>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Ukuran</th>
@@ -67,28 +71,37 @@ export default async function DatabaseBackupsPage({
           <tbody>
             {items.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-muted">
+                <td colSpan={5} className="px-4 py-10 text-center text-muted">
                   Belum ada backup. Klik “Backup now” atau tunggu jadwal harian.
                 </td>
               </tr>
             )}
             {items.map((b) => (
-              <tr key={b.id} className="border-b border-border/50 last:border-0">
+              <tr
+                key={b.id}
+                className="border-b border-border/60 last:border-0 transition-colors hover:bg-surface-2/40"
+              >
                 <td className="px-4 py-3">
-                  <Badge tone={statusTone[b.status]}>{b.status}</Badge>
-                  {b.error && (
-                    <span className="ml-2 text-xs text-danger" title={b.error}>
-                      ⚠
-                    </span>
-                  )}
+                  <span className="inline-flex items-center gap-2">
+                    <Badge tone={statusTone[b.status]} dot>
+                      {b.status}
+                    </Badge>
+                    {b.error && (
+                      <span title={b.error}>
+                        <AlertTriangle className="size-3.5 text-danger" />
+                      </span>
+                    )}
+                  </span>
                 </td>
-                <td className="px-4 py-3">{formatBytes(b.sizeBytes)}</td>
+                <td className="px-4 py-3 tabular-nums">
+                  {formatBytes(b.sizeBytes)}
+                </td>
                 <td className="px-4 py-3">
-                  <code className="text-xs text-muted">{b.location ?? "—"}</code>
+                  <code className="text-xs text-muted">
+                    {b.location ?? "—"}
+                  </code>
                 </td>
-                <td className="px-4 py-3 text-muted">
-                  {formatDate(b.createdAt)}
-                </td>
+                <td className="px-4 py-3 text-muted">{formatDate(b.createdAt)}</td>
                 <td className="px-4 py-3 text-right">
                   {b.status === "success" && b.location && (
                     <a

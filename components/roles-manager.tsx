@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Plus } from "lucide-react";
 import {
   addRoleAction,
   resetPasswordAction,
@@ -18,6 +19,9 @@ type Role = {
   isOwner: boolean;
   connectionLimit: number;
 };
+
+const field =
+  "w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:bg-surface";
 
 export function RolesManager({
   databaseId,
@@ -39,33 +43,42 @@ export function RolesManager({
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-xl border border-border">
+      <div className="overflow-hidden rounded-xl border border-border bg-surface elevation-1">
         <table className="w-full text-sm">
-          <thead className="border-b border-border text-left text-muted">
+          <thead className="border-b border-border text-left text-xs uppercase tracking-wide text-faint">
             <tr>
-              <th className="px-4 py-2.5 font-medium">Role</th>
-              <th className="px-4 py-2.5 font-medium">Tipe</th>
-              <th className="px-4 py-2.5 font-medium">Conn limit</th>
-              <th className="px-4 py-2.5 font-medium text-right">Aksi</th>
+              <th className="px-4 py-3 font-medium">Role</th>
+              <th className="px-4 py-3 font-medium">Tipe</th>
+              <th className="px-4 py-3 font-medium">Conn limit</th>
+              <th className="px-4 py-3 font-medium text-right">Aksi</th>
             </tr>
           </thead>
           <tbody>
             {roles.map((r) => (
-              <tr key={r.id} className="border-b border-border/50 last:border-0">
-                <td className="px-4 py-2.5">
-                  <code>{r.roleName}</code>
+              <tr
+                key={r.id}
+                className="border-b border-border/60 last:border-0 transition-colors hover:bg-surface-2/40"
+              >
+                <td className="px-4 py-3">
+                  <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs">
+                    {r.roleName}
+                  </code>
                 </td>
-                <td className="px-4 py-2.5">
+                <td className="px-4 py-3">
                   {r.isOwner ? (
-                    <Badge tone="primary">owner</Badge>
+                    <Badge tone="primary" dot>
+                      owner
+                    </Badge>
                   ) : (
-                    <Badge tone="muted">user</Badge>
+                    <Badge tone="muted" dot>
+                      user
+                    </Badge>
                   )}
                 </td>
-                <td className="px-4 py-2.5 text-muted">
+                <td className="px-4 py-3 text-muted tabular-nums">
                   {r.connectionLimit === -1 ? "∞" : r.connectionLimit}
                 </td>
-                <td className="px-4 py-2.5">
+                <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">
                     <form action={resetAction}>
                       <input type="hidden" name="roleId" value={r.id} />
@@ -74,7 +87,11 @@ export function RolesManager({
                         name="databaseId"
                         value={databaseId}
                       />
-                      <SubmitButton variant="ghost" pendingText="…">
+                      <SubmitButton
+                        variant="ghost"
+                        size="sm"
+                        pendingText="…"
+                      >
                         Reset password
                       </SubmitButton>
                     </form>
@@ -104,8 +121,9 @@ export function RolesManager({
       {reveal && <SecretReveal data={reveal} />}
 
       <details className="rounded-xl border border-border bg-surface-2/40 p-4">
-        <summary className="cursor-pointer text-sm font-medium">
-          + Tambah user/role
+        <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+          <Plus className="size-4" />
+          Tambah user/role
         </summary>
         <form action={addAction} className="mt-4 space-y-4">
           <input type="hidden" name="databaseId" value={databaseId} />
@@ -116,7 +134,7 @@ export function RolesManager({
                 name="roleName"
                 required
                 placeholder="app_reader"
-                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
+                className={field}
               />
             </label>
             <label className="space-y-1.5">
@@ -124,7 +142,7 @@ export function RolesManager({
               <select
                 name="mode"
                 defaultValue="readwrite"
-                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
+                className={field}
               >
                 <option value="readwrite">Read &amp; write</option>
                 <option value="read">Read only</option>
@@ -137,12 +155,12 @@ export function RolesManager({
                 type="number"
                 min={-1}
                 defaultValue={-1}
-                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
+                className={field}
               />
             </label>
           </div>
           {addState.error && (
-            <p className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
+            <p className="rounded-lg border border-danger/25 bg-danger/8 px-3 py-2 text-sm text-danger">
               {addState.error}
             </p>
           )}

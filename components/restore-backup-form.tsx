@@ -1,13 +1,14 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
 import { restoreBackupAction } from "@/app/(panel)/backups/actions";
 import type { ActionState } from "@/app/(panel)/databases/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { SecretReveal } from "@/components/secret-reveal";
 
 const field =
-  "w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-primary";
+  "w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:bg-surface";
 
 export function RestoreBackupForm({
   options,
@@ -26,14 +27,23 @@ export function RestoreBackupForm({
   }, [state.reveal]);
 
   return (
-    <div className="rounded-2xl border border-border bg-surface p-5">
+    <div className="rounded-xl border border-border bg-surface elevation-1 p-5">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between text-left"
       >
-        <span className="font-medium">↺ Restore dari backup</span>
-        <span className="text-muted">{open ? "▲" : "▼"}</span>
+        <span className="flex items-center gap-2 text-sm font-medium">
+          <RotateCcw className="size-4" />
+          Restore dari backup
+        </span>
+        <span className="text-faint">
+          {open ? (
+            <ChevronUp className="size-4" />
+          ) : (
+            <ChevronDown className="size-4" />
+          )}
+        </span>
       </button>
 
       {open &&
@@ -62,14 +72,14 @@ export function RestoreBackupForm({
                   placeholder="restored_app"
                   className={field}
                 />
-                <span className="text-xs text-muted">
+                <span className="text-xs text-faint">
                   DB managed baru + owner role dibuat otomatis.
                 </span>
               </label>
             </div>
 
             {state.error && (
-              <p className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
+              <p className="rounded-lg border border-danger/25 bg-danger/8 px-3 py-2 text-sm text-danger">
                 {state.error}
               </p>
             )}

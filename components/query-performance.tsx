@@ -25,9 +25,9 @@ export function QueryPerformance({
   const [tab, setTab] = useState<QuerySort>("slowest");
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-border bg-surface">
+    <section className="overflow-hidden rounded-xl border border-border bg-surface elevation-1">
       <div className="flex items-center justify-between gap-4 p-5">
-        <h2 className="font-medium">Query Performance</h2>
+        <h2 className="text-sm font-semibold">Query Performance</h2>
         <div className="flex rounded-lg border border-border bg-surface-2 p-0.5 text-xs">
           {TABS.map((t) => (
             <button
@@ -35,9 +35,9 @@ export function QueryPerformance({
               type="button"
               onClick={() => setTab(t.key)}
               className={cn(
-                "rounded-md px-3 py-1.5 transition",
+                "rounded-md px-3 py-1.5 transition-colors duration-150",
                 tab === t.key
-                  ? "bg-surface text-text shadow-sm"
+                  ? "bg-surface text-text elevation-1"
                   : "text-muted hover:text-text",
               )}
             >
@@ -57,7 +57,7 @@ export function QueryPerformance({
         </p>
       ) : (
         <table className="w-full text-sm">
-          <thead className="border-y border-border text-left text-xs uppercase tracking-wide text-muted">
+          <thead className="border-y border-border text-left text-xs uppercase tracking-wide text-faint">
             <tr>
               <th className="px-5 py-3 font-medium">Query</th>
               <th className="px-4 py-3 font-medium">Calls</th>
@@ -67,19 +67,31 @@ export function QueryPerformance({
             </tr>
           </thead>
           <tbody>
-            {data[tab].map((q, i) => (
-              <tr key={i} className="border-b border-border/50 last:border-0">
+            {data[tab].map((q) => (
+              <tr
+                key={`${q.calls}-${q.query.slice(0, 48)}`}
+                className="border-b border-border/60 last:border-0 transition-colors hover:bg-surface-2/40"
+              >
                 <td className="max-w-md px-5 py-3">
                   <code className="line-clamp-2 break-all text-xs text-muted">
                     {q.query}
                   </code>
                 </td>
-                <td className="px-4 py-3">{formatCount(q.calls)}</td>
-                <td className="px-4 py-3">{formatDuration(q.totalTimeMs)}</td>
-                <td className={cn("px-4 py-3 font-medium", avgTone(q.meanTimeMs))}>
+                <td className="px-4 py-3 tabular-nums">{formatCount(q.calls)}</td>
+                <td className="px-4 py-3 tabular-nums">
+                  {formatDuration(q.totalTimeMs)}
+                </td>
+                <td
+                  className={cn(
+                    "px-4 py-3 font-medium tabular-nums",
+                    avgTone(q.meanTimeMs),
+                  )}
+                >
                   {formatDuration(q.meanTimeMs)}
                 </td>
-                <td className="px-4 py-3 text-muted">{formatCount(q.rows)}</td>
+                <td className="px-4 py-3 text-muted tabular-nums">
+                  {formatCount(q.rows)}
+                </td>
               </tr>
             ))}
           </tbody>

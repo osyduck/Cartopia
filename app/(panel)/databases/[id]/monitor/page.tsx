@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { Check } from "lucide-react";
 import { getDatabaseDetail } from "@/lib/services/databases";
 import { getLastMetricAt } from "@/lib/services/monitoring";
 import * as dp from "@/lib/dataplane";
@@ -9,8 +10,11 @@ export const dynamic = "force-dynamic";
 
 function Bar({ pct, tone }: { pct: number; tone: string }) {
   return (
-    <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-2">
-      <div className={tone} style={{ width: `${Math.min(100, pct)}%` }} />
+    <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
+      <div
+        className={`h-full rounded-full transition-[width] duration-300 ${tone}`}
+        style={{ width: `${Math.min(100, pct)}%` }}
+      />
     </div>
   );
 }
@@ -60,26 +64,26 @@ export default async function DatabaseMonitorPage({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold">Database Monitoring</h2>
+      <h2 className="text-base font-semibold">Database Monitoring</h2>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Active connections */}
-        <div className="rounded-2xl border border-border bg-surface p-5">
+        <div className="rounded-xl border border-border bg-surface elevation-1 p-5">
           <div className="text-sm text-muted">Active Connections</div>
-          <div className="mt-1 text-2xl font-semibold">
+          <div className="mt-1 text-2xl font-semibold tabular-nums">
             {active} <span className="text-base text-muted">/ {connLimit}</span>
           </div>
           <Bar
             pct={connPct}
-            tone={connPct >= 90 ? "h-full bg-danger" : "h-full bg-success"}
+            tone={connPct >= 90 ? "bg-danger" : "bg-success"}
           />
-          <div className="mt-2 text-xs text-muted">connection limit</div>
+          <div className="mt-2 text-xs text-faint">connection limit</div>
         </div>
 
         {/* Database size */}
-        <div className="rounded-2xl border border-border bg-surface p-5">
+        <div className="rounded-xl border border-border bg-surface elevation-1 p-5">
           <div className="text-sm text-muted">Database Size</div>
-          <div className="mt-1 text-2xl font-semibold">
+          <div className="mt-1 text-2xl font-semibold tabular-nums">
             {formatBytes(sizeBytes)}
             {database.quotaBytes && (
               <span className="text-base text-muted">
@@ -94,30 +98,30 @@ export default async function DatabaseMonitorPage({
                 pct={sizePct}
                 tone={
                   sizePct >= 100
-                    ? "h-full bg-danger"
+                    ? "bg-danger"
                     : sizePct >= 80
-                      ? "h-full bg-warning"
-                      : "h-full bg-success"
+                      ? "bg-warning"
+                      : "bg-success"
                 }
               />
-              <div className="mt-2 text-xs text-muted">
+              <div className="mt-2 text-xs text-faint">
                 {sizePct.toFixed(0)}% used
               </div>
             </>
           ) : (
-            <div className="mt-2 text-xs text-muted">unlimited</div>
+            <div className="mt-2 text-xs text-faint">unlimited</div>
           )}
         </div>
 
         {/* Cache hit ratio */}
-        <div className="rounded-2xl border border-border bg-surface p-5">
+        <div className="rounded-xl border border-border bg-surface elevation-1 p-5">
           <div className="text-sm text-muted">Cache Hit Ratio</div>
-          <div className="mt-1 text-2xl font-semibold">
+          <div className="mt-1 text-2xl font-semibold tabular-nums">
             {formatPercent(cache)}
           </div>
           <div
             className={
-              "mt-2 text-xs " +
+              "mt-2 flex items-center gap-1 text-xs " +
               (cacheLabel === "Optimal"
                 ? "text-success"
                 : cacheLabel === "Good"
@@ -125,24 +129,26 @@ export default async function DatabaseMonitorPage({
                   : "text-muted")
             }
           >
-            {cacheLabel === "Optimal" ? "✓ " : ""}
+            {cacheLabel === "Optimal" && (
+              <Check className="size-3.5 text-success" />
+            )}
             {cacheLabel}
           </div>
         </div>
 
         {/* Monitoring status */}
-        <div className="rounded-2xl border border-border bg-surface p-5">
+        <div className="rounded-xl border border-border bg-surface elevation-1 p-5">
           <div className="text-sm text-muted">Monitoring Status</div>
           <div className="mt-1 flex items-center gap-2 text-2xl font-semibold">
             {metrics ? "Live" : "Down"}
             <span
               className={
-                "inline-block h-2.5 w-2.5 rounded-full " +
+                "size-2.5 rounded-full " +
                 (metrics ? "bg-success" : "bg-danger")
               }
             />
           </div>
-          <div className="mt-2 text-xs text-muted">
+          <div className="mt-2 text-xs text-faint">
             {!metrics
               ? "instance unreachable"
               : lastMetricAt
