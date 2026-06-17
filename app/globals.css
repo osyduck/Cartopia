@@ -1,19 +1,53 @@
 @import "tailwindcss";
 
+/*
+  Cartopia design system
+  Mood: network operations center at 3am — calm authority, amber on graphite.
+  Strategy: Committed. Amber primary carries identity; bg is pure-neutral dark.
+  All colors OKLCH. Body ≥4.5:1, muted ≥3.5:1, large ≥3:1.
+*/
+
 @theme {
-  --color-bg: #0b0f17;
-  --color-surface: #131a26;
-  --color-surface-2: #1a2333;
-  --color-border: #243047;
-  --color-muted: #8a96ab;
-  --color-text: #e7ecf4;
-  --color-primary: #4f8cff;
-  --color-primary-fg: #ffffff;
-  --color-success: #34d399;
-  --color-warning: #fbbf24;
-  --color-danger: #f87171;
+  /* Surfaces — pure-neutral graphite, no warm-cream tint in the bg. */
+  --color-bg: oklch(0.14 0 0);
+  --color-surface: oklch(0.18 0.004 55);
+  --color-surface-2: oklch(0.22 0.006 55);
+  --color-surface-3: oklch(0.26 0.009 55);
+
+  /* Borders — faint warm tint toward the brand hue. */
+  --color-border: oklch(0.28 0.008 55);
+  --color-border-strong: oklch(0.34 0.010 55);
+
+  /* Text — near-white with a whisper of brand warmth. */
+  --color-text: oklch(0.93 0.006 55); /* ~10.5:1 vs bg */
+  --color-muted: oklch(0.70 0.010 55); /* ~4.0:1 vs bg */
+  --color-faint: oklch(0.52 0.008 55); /* tertiary / disabled */
+
+  /* Brand — burnished honey amber. Dark ink reads on it (~5:1). */
+  --color-primary: oklch(0.70 0.150 52);
+  --color-primary-hover: oklch(0.74 0.155 52);
+  --color-primary-active: oklch(0.66 0.150 52);
+  --color-primary-fg: oklch(0.10 0 0); /* near-black ink on honey */
+  --color-primary-tint: oklch(0.70 0.150 52 / 0.14);
+
+  /* Accent — cool teal, deliberately across the wheel from amber. */
+  --color-accent: oklch(0.74 0.110 200);
+
+  /* Semantics — each visually distinct from primary. */
+  --color-success: oklch(0.74 0.150 155);
+  --color-warning: oklch(0.82 0.145 92); /* lighter gold, hue 92 vs primary 52 */
+  --color-danger: oklch(0.64 0.200 25);
+  --color-info: oklch(0.72 0.110 235);
+
+  /* Type */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SFMono-Regular", monospace;
+
+  /* Radii */
+  --radius-sm: 0.375rem;
+  --radius: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
 }
 
 html {
@@ -24,10 +58,87 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-sans);
+  /* Subtle ambient warmth: a faint amber glow at the top, like task lighting. */
+  background-image: radial-gradient(
+    900px 480px at 50% -240px,
+    oklch(0.70 0.150 52 / 0.05),
+    transparent 70%
+  );
+  background-attachment: fixed;
 }
 
-/* Thin scrollbars to match the dark UI */
+/* Thin scrollbars tuned to the dark UI */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-border) transparent;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 9999px;
+  border: 3px solid var(--color-bg);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-faint);
+}
+
+/* Focus ring — amber-tinted, consistent across every interactive element */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Selection */
+::selection {
+  background: oklch(0.70 0.150 52 / 0.28);
+  color: var(--color-text);
+}
+
+/* Elevation utilities — depth replaces flat borders-everywhere.
+   On dark UIs, drop shadows (dark-on-dark) barely show, so depth comes
+   from a brighter inset top edge (light-from-above) + a darker-than-bg
+   shadow halo. The inset highlight is the primary cue. */
+@utility elevation-1 {
+  box-shadow:
+    0 1px 0 0 oklch(1 0 0 / 0.07) inset,
+    0 1px 2px 0 oklch(0 0 0 / 0.5),
+    0 0 0 1px oklch(0 0 0 / 0.15);
+}
+@utility elevation-2 {
+  box-shadow:
+    0 1px 0 0 oklch(1 0 0 / 0.08) inset,
+    0 4px 12px -2px oklch(0 0 0 / 0.55),
+    0 2px 4px -1px oklch(0 0 0 / 0.4);
+}
+@utility elevation-3 {
+  box-shadow:
+    0 1px 0 0 oklch(1 0 0 / 0.10) inset,
+    0 16px 40px -8px oklch(0 0 0 / 0.65),
+    0 4px 10px -2px oklch(0 0 0 / 0.45);
+}
+@utility glow-primary {
+  box-shadow: 0 0 0 1px oklch(0.70 0.150 52 / 0.4), 0 4px 16px -2px oklch(0.70 0.150 52 / 0.3);
+}
+
+/* Tabular figures everywhere numbers matter */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
