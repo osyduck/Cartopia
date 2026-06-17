@@ -20,7 +20,7 @@ export function DbTabs({ base }: { base: string }) {
 
   return (
     <nav
-      className="flex gap-1 overflow-x-auto border-b border-border"
+      className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-border"
       aria-label="Database sections"
     >
       {tabs.map((t) => {
