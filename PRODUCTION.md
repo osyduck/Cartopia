@@ -55,12 +55,21 @@ role, but worth rotating.)
 
 ## 3. Start the stack
 
+**Pull prebuilt images from GHCR** (fastest — no build on the VPS):
+
+```bash
+docker compose --env-file .env.production -f docker-compose.prod.yml pull web worker
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d
+```
+
+Or **build locally** (if you can't reach GHCR or want to modify the image):
+
 ```bash
 docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
 ```
 
-This builds the `web` and `worker` images (multi-stage Dockerfile) and starts
-all services. The first build takes a few minutes.
+This starts all services. The first run takes a few minutes (pull/build + DB
+init).
 
 ## 4. Migrate + seed the metadata DB
 
@@ -204,13 +213,42 @@ separate one. Tenant connection strings then add `?sslmode=require`.
 docker compose -f docker-compose.prod.yml logs -f web
 docker compose -f docker-compose.prod.yml logs -f worker
 
-# rebuild after a code update
+# update to a new release (image published to GHCR — see Releases below)
+docker compose --env-file .env.production -f docker-compose.prod.yml pull web worker
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d
+
+# rebuild from source instead (no GHCR access / local modifications)
 git pull
 docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
 
 # one-off quota sweep (without waiting for the worker interval)
 docker compose --env-file .env.production -f docker-compose.prod.yml exec worker npm run quota:sweep
 ```
+
+## Releases (GHCR)
+
+Prebuilt images are published to the GitHub Container Registry by the
+`release` workflow (`.github/workflows/release.yml`) on every `v*` tag:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The workflow builds multi-arch (amd64 + arm64) images and pushes:
+
+- `ghcr.io/osyduck/cartopia-web:1.0.0` (+ `:latest`)
+- `ghcr.io/osyduck/cartopia-worker:1.0.0` (+ `:latest`)
+
+`docker-compose.prod.yml` references those images, so updating a deployment is
+`docker compose pull web worker && docker compose up -d` — no build on the VPS.
+To pin a specific release, change `:latest` to `:1.0.0` in the compose file.
+The `build:` keys are kept alongside `image:` so `up -d --build` still works
+locally without GHCR.
+
+The first push creates the package under `osyduck`; set its visibility in
+GitHub → Packages → cartopia-web/worker → settings (public by default for a
+public repo).
 
 ## Security checklist
 

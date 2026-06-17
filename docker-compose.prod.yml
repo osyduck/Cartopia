@@ -116,11 +116,13 @@ services:
       "
 
   # Next.js standalone server. Nginx (on the host) reverse-proxies here.
+  # `image` points at GHCR (prebuilt — `docker compose pull` then `up -d`).
+  # `build` is kept as a fallback so `up -d --build` works without GHCR access.
   web:
+    image: ghcr.io/osyduck/cartopia-web:latest
     build:
       context: .
       target: web
-    image: cartopia-web
     container_name: cartopia-web
     restart: unless-stopped
     env_file: .env.production
@@ -134,10 +136,10 @@ services:
 
   # BullMQ worker: quota sweep, metrics sampling, scheduled backups.
   worker:
+    image: ghcr.io/osyduck/cartopia-worker:latest
     build:
       context: .
       target: worker
-    image: cartopia-worker
     container_name: cartopia-worker
     restart: unless-stopped
     env_file: .env.production
