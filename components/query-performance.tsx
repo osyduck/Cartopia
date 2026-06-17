@@ -49,11 +49,11 @@ export function QueryPerformance({
 
       {!data ? (
         <p className="px-5 pb-6 text-sm text-muted">
-          <code>pg_stat_statements</code> belum aktif di instance ini.
+          <code>pg_stat_statements</code> is not enabled on this instance.
         </p>
       ) : data[tab].length === 0 ? (
         <p className="px-5 pb-6 text-sm text-muted">
-          Belum ada statistik query. Jalankan beberapa query lalu refresh.
+          No query stats yet. Run some queries then refresh.
         </p>
       ) : (
         <table className="w-full text-sm">

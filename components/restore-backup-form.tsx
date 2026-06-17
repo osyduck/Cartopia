@@ -35,7 +35,7 @@ export function RestoreBackupForm({
       >
         <span className="flex items-center gap-2 text-sm font-medium">
           <RotateCcw className="size-4" />
-          Restore dari backup
+          Restore from backup
         </span>
         <span className="text-faint">
           {open ? (
@@ -49,13 +49,13 @@ export function RestoreBackupForm({
       {open &&
         (options.length === 0 ? (
           <p className="mt-4 text-sm text-muted">
-            Belum ada backup sukses untuk di-restore.
+            No successful backups to restore.
           </p>
         ) : (
           <form ref={formRef} action={formAction} className="mt-4 space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="space-y-1.5">
-                <span className="text-sm text-muted">Backup sumber</span>
+                <span className="text-sm text-muted">Source backup</span>
                 <select name="backupId" required className={field}>
                   {options.map((o) => (
                     <option key={o.id} value={o.id}>
@@ -65,7 +65,7 @@ export function RestoreBackupForm({
                 </select>
               </label>
               <label className="space-y-1.5">
-                <span className="text-sm text-muted">Nama database baru</span>
+                <span className="text-sm text-muted">New database name</span>
                 <input
                   name="newName"
                   required
@@ -73,7 +73,7 @@ export function RestoreBackupForm({
                   className={field}
                 />
                 <span className="text-xs text-faint">
-                  DB managed baru + owner role dibuat otomatis.
+                  Creates a new managed DB + owner role.
                 </span>
               </label>
             </div>
@@ -84,8 +84,8 @@ export function RestoreBackupForm({
               </p>
             )}
 
-            <SubmitButton pendingText="Me-restore…">
-              Restore ke DB baru
+            <SubmitButton pendingText="Restoring…">
+              Restore to new DB
             </SubmitButton>
           </form>
         ))}

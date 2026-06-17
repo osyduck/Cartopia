@@ -30,7 +30,7 @@ export function PanelShell({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          aria-label="Buka menu"
+          aria-label="Open menu"
           className="-ml-1 rounded-lg p-2 text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-text"
         >
           <Menu className="size-5" />
@@ -46,7 +46,7 @@ export function PanelShell({
         <button
           type="button"
           onClick={() => setOpen(false)}
-          aria-label="Tutup menu"
+          aria-label="Close menu"
           className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
         />
       )}
@@ -65,7 +65,7 @@ export function PanelShell({
           <button
             type="button"
             onClick={() => setOpen(false)}
-            aria-label="Tutup menu"
+            aria-label="Close menu"
             className="rounded-lg p-1.5 text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-text md:hidden"
           >
             <X className="size-5" />

@@ -11,7 +11,7 @@ export function SecretReveal({ data }: { data: SecretRevealData }) {
       </div>
       <p className="flex items-center gap-1.5 text-xs text-warning">
         <AlertTriangle className="size-3.5 text-warning" />
-        Simpan sekarang — password hanya ditampilkan sekali dan tidak disimpan.
+        Save now — shown once, never stored.
       </p>
 
       <Field label="Role">

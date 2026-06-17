@@ -94,7 +94,7 @@ export function ConnectionMethods({
           <div className="space-y-1.5">
             <span className="text-sm text-muted">Password</span>
             <div className="rounded-lg border border-border bg-surface-2 px-3 py-2 text-xs text-faint">
-              Tidak tersimpan — “Reset password” di tab Settings untuk menampilkan.
+              Not stored — reset in Settings to reveal.
             </div>
           </div>
         )}

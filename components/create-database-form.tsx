@@ -30,7 +30,7 @@ export function CreateDatabaseForm() {
       >
         <span className="flex items-center gap-2 font-medium text-sm">
           <Plus className="size-4 text-faint" />
-          Database baru
+          New database
         </span>
         {open ? (
           <ChevronUp className="size-4 text-faint" />
@@ -43,7 +43,7 @@ export function CreateDatabaseForm() {
         <form ref={formRef} action={formAction} className="mt-4 space-y-4">
           <div className="grid gap-4 sm:grid-cols-3">
             <label className="space-y-1.5 sm:col-span-3">
-              <span className="text-sm text-muted">Nama database</span>
+              <span className="text-sm text-muted">Database name</span>
               <input
                 name="name"
                 required
@@ -51,7 +51,7 @@ export function CreateDatabaseForm() {
                 className="w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:bg-surface"
               />
               <span className="text-xs text-faint">
-                Role owner <code>{"<nama>_owner"}</code> dibuat otomatis.
+                Auto-creates owner role <code>{"<name>_owner"}</code>.
               </span>
             </label>
 
@@ -86,7 +86,7 @@ export function CreateDatabaseForm() {
             </p>
           )}
 
-          <SubmitButton pendingText="Membuat…">Buat database</SubmitButton>
+          <SubmitButton pendingText="Creating…">Create database</SubmitButton>
         </form>
       )}
 

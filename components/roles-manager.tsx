@@ -48,9 +48,9 @@ export function RolesManager({
           <thead className="border-b border-border text-left text-xs uppercase tracking-wide text-faint">
             <tr>
               <th className="px-4 py-3 font-medium">Role</th>
-              <th className="px-4 py-3 font-medium">Tipe</th>
+              <th className="px-4 py-3 font-medium">Type</th>
               <th className="px-4 py-3 font-medium">Conn limit</th>
-              <th className="px-4 py-3 font-medium text-right">Aksi</th>
+              <th className="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -98,8 +98,8 @@ export function RolesManager({
                     {!r.isOwner && (
                       <ActionForm
                         action={deleteRoleAction}
-                        confirm={`Hapus role "${r.roleName}"?`}
-                        label="Hapus"
+                        confirm={`Delete role “${r.roleName}”?`}
+                        label="Delete"
                         variant="danger"
                       >
                         <input type="hidden" name="roleId" value={r.id} />
@@ -123,13 +123,13 @@ export function RolesManager({
       <details className="rounded-xl border border-border bg-surface-2/40 p-4">
         <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium">
           <Plus className="size-4" />
-          Tambah user/role
+          Add user/role
         </summary>
         <form action={addAction} className="mt-4 space-y-4">
           <input type="hidden" name="databaseId" value={databaseId} />
           <div className="grid gap-4 sm:grid-cols-3">
             <label className="space-y-1.5">
-              <span className="text-sm text-muted">Nama role</span>
+              <span className="text-sm text-muted">Role name</span>
               <input
                 name="roleName"
                 required
@@ -138,7 +138,7 @@ export function RolesManager({
               />
             </label>
             <label className="space-y-1.5">
-              <span className="text-sm text-muted">Akses</span>
+              <span className="text-sm text-muted">Access</span>
               <select
                 name="mode"
                 defaultValue="readwrite"
@@ -164,7 +164,7 @@ export function RolesManager({
               {addState.error}
             </p>
           )}
-          <SubmitButton pendingText="Membuat…">Tambah role</SubmitButton>
+          <SubmitButton pendingText="Creating…">Add role</SubmitButton>
         </form>
       </details>
     </div>
