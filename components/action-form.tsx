@@ -15,7 +15,7 @@ export function ActionForm({
   confirm?: string;
   label: string;
   pendingText?: string;
-  variant?: "primary" | "danger" | "ghost";
+  variant?: "primary" | "secondary" | "danger" | "ghost";
   children?: React.ReactNode;
   className?: string;
 }) {
