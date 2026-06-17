@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { getDatabaseDetail } from "@/lib/services/databases";
 import * as dp from "@/lib/dataplane";
 import { Badge } from "@/components/badge";
 import { DbTabs } from "@/components/db-tabs";
 import { RefreshButton } from "@/components/refresh-button";
+import { cn } from "@/lib/cn";
 import { formatBytes, formatDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -39,16 +41,19 @@ export default async function DatabaseLayout({
         <div>
           <Link
             href="/databases"
-            className="text-sm text-muted hover:text-text"
+            className="inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-text"
           >
-            ← Databases
+            <ArrowLeft className="size-3.5" />
+            Databases
           </Link>
           <div className="mt-2 flex items-center gap-3">
-            <h1 className="text-2xl font-semibold">{database.name}</h1>
+            <h1 className="text-xl font-semibold tracking-tight">
+              {database.name}
+            </h1>
             {database.isReadonly ? (
-              <Badge tone="warning">read-only</Badge>
+              <Badge tone="warning" dot>read-only</Badge>
             ) : database.status === "active" ? (
-              <Badge tone="success">active</Badge>
+              <Badge tone="success" dot>active</Badge>
             ) : (
               <Badge tone="muted">{database.status}</Badge>
             )}
@@ -63,46 +68,49 @@ export default async function DatabaseLayout({
 
       {/* Stat cards */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-surface p-5">
+        <div className="rounded-xl border border-border bg-surface elevation-1 p-5">
           <div className="text-sm text-muted">Storage Usage</div>
-          <div className="mt-1 text-2xl font-semibold">
+          <div className="mt-1 text-2xl font-semibold tabular-nums">
             {formatBytes(sizeBytes)}
           </div>
-          <div className="text-xs text-muted">
+          <div className="text-xs text-faint">
             {database.quotaBytes
               ? `of ${formatBytes(database.quotaBytes)}`
               : "unlimited"}
           </div>
           {quotaPct != null && (
-            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-surface-2">
+            <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
               <div
-                className={
+                className={cn(
+                  "h-full rounded-full transition-[width] duration-300",
                   quotaPct >= 100
-                    ? "h-full bg-danger"
+                    ? "bg-danger"
                     : quotaPct >= 80
-                      ? "h-full bg-warning"
-                      : "h-full bg-success"
-                }
+                      ? "bg-warning"
+                      : "bg-success",
+                )}
                 style={{ width: `${quotaPct}%` }}
               />
             </div>
           )}
         </div>
 
-        <div className="rounded-2xl border border-border bg-surface p-5">
+        <div className="rounded-xl border border-border bg-surface elevation-1 p-5">
           <div className="text-sm text-muted">Active connections</div>
-          <div className="mt-1 text-2xl font-semibold">
+          <div className="mt-1 text-2xl font-semibold tabular-nums">
             {metrics?.activeConnections ?? "—"}
           </div>
-          <div className="text-xs text-muted">
+          <div className="text-xs text-faint">
             {metrics ? `${metrics.totalConnections} total` : "unreachable"}
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-surface p-5">
+        <div className="rounded-xl border border-border bg-surface elevation-1 p-5">
           <div className="text-sm text-muted">Roles</div>
-          <div className="mt-1 text-2xl font-semibold">{roles.length}</div>
-          <div className="text-xs text-muted">instance {instance.name}</div>
+          <div className="mt-1 text-2xl font-semibold tabular-nums">
+            {roles.length}
+          </div>
+          <div className="text-xs text-faint">instance {instance.name}</div>
         </div>
       </div>
 
