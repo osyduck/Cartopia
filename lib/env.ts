@@ -26,6 +26,9 @@ const schema = z.object({
   // Monitoring: how often to sample metrics + ping instances.
   METRICS_SWEEP_INTERVAL_SECONDS: z.coerce.number().int().min(10).default(60),
 
+  // Optional alert webhook (Discord / Slack / generic JSON). Empty = log only.
+  ALERT_WEBHOOK_URL: z.string().default(""),
+
   // Backups: pg_dump via the data-plane Docker container (dev) or a native
   // pg_dump binary on PATH (prod). Daily cron + rolling retention.
   BACKUP_DOCKER_CONTAINER: z.string().default(""),

@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { getDatabaseDetail } from "@/lib/services/databases";
+import { getLastMetricAt } from "@/lib/services/monitoring";
 import * as dp from "@/lib/dataplane";
 import { QueryPerformance } from "@/components/query-performance";
-import { formatBytes, formatPercent } from "@/lib/format";
+import { formatBytes, formatPercent, formatRelative } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -25,11 +26,12 @@ export default async function DatabaseMonitorPage({
 
   const { instance, database, roles, sizeBytes } = detail;
 
-  const [metrics, slowest, total, calls] = await Promise.all([
+  const [metrics, slowest, total, calls, lastMetricAt] = await Promise.all([
     dp.databaseMetrics(instance, database.name).catch(() => null),
     dp.queryStats(instance, database.name, "slowest"),
     dp.queryStats(instance, database.name, "total"),
     dp.queryStats(instance, database.name, "calls"),
+    getLastMetricAt(id),
   ]);
   const queryData =
     slowest && total && calls ? { slowest, total, calls } : null;
@@ -141,7 +143,11 @@ export default async function DatabaseMonitorPage({
             />
           </div>
           <div className="mt-2 text-xs text-muted">
-            {metrics ? "Updated just now" : "instance unreachable"}
+            {!metrics
+              ? "instance unreachable"
+              : lastMetricAt
+                ? `Sampel terakhir ${formatRelative(lastMetricAt)}`
+                : "Live · on-demand"}
           </div>
         </div>
       </div>

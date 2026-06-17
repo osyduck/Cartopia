@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   databases,
@@ -105,6 +105,19 @@ export async function getDatabasesMonitoring(): Promise<DatabaseMonitor[]> {
     });
   }
   return out;
+}
+
+/** When the worker last sampled metrics for a database (null if never). */
+export async function getLastMetricAt(
+  databaseId: string,
+): Promise<Date | null> {
+  const [row] = await db
+    .select({ capturedAt: metricSnapshots.capturedAt })
+    .from(metricSnapshots)
+    .where(eq(metricSnapshots.databaseId, databaseId))
+    .orderBy(desc(metricSnapshots.capturedAt))
+    .limit(1);
+  return row?.capturedAt ?? null;
 }
 
 export type TrendPoint = { capturedAt: Date; sizeBytes: number };

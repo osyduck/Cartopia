@@ -25,6 +25,19 @@ export function formatCount(n: number | null | undefined): string {
   return n.toLocaleString("en-US");
 }
 
+/** Relative time from now: "just now", "5 min ago", "2 h ago", "3 d ago". */
+export function formatRelative(d: Date | string | null | undefined): string {
+  if (!d) return "—";
+  const date = typeof d === "string" ? new Date(d) : d;
+  const sec = Math.max(0, Math.round((Date.now() - date.getTime()) / 1000));
+  if (sec < 45) return "just now";
+  const min = Math.round(sec / 60);
+  if (min < 60) return `${min} min ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr} h ago`;
+  return `${Math.round(hr / 24)} d ago`;
+}
+
 export function formatDate(d: Date | string | null | undefined): string {
   if (!d) return "—";
   const date = typeof d === "string" ? new Date(d) : d;

@@ -81,7 +81,8 @@ databases or to the `postgres`/`template1` maintenance databases
   database, records usage snapshots, and drives a soft quota state machine:
   warn at 80% → enforce read-only at 100% (kicks live sessions) → recover when
   it drops back under 95% (hysteresis). Each transition logs a `quota_events`
-  row + a notification.
+  row + a notification (and POSTs to `ALERT_WEBHOOK_URL` if set —
+  Discord/Slack/generic).
 - **BullMQ worker** (`worker/index.ts`) — repeatable job runs the sweep every
   `QUOTA_SWEEP_INTERVAL_SECONDS` (default 60). Run with `npm run worker`.
 - **UI** — alert banner + usage bars/% + status badges on the databases list, a
