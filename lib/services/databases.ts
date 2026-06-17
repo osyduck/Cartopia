@@ -125,6 +125,7 @@ export async function getDatabaseDetail(
 
 export type ProvisionResult = {
   databaseId: string;
+  databaseName: string;
   ownerRole: string;
   password: string;
   connectionString: string;
@@ -177,6 +178,7 @@ export async function provisionDatabase(opts: {
 
   return {
     databaseId: inserted.id,
+    databaseName: name,
     ownerRole,
     password,
     connectionString: connectionString({

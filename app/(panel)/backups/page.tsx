@@ -1,6 +1,7 @@
 import { listBackups, getBackupStats } from "@/lib/services/backups";
 import { Badge } from "@/components/badge";
 import { ActionForm } from "@/components/action-form";
+import { RestoreBackupForm } from "@/components/restore-backup-form";
 import { formatBytes, formatDate } from "@/lib/format";
 import { env } from "@/lib/env";
 import { backupNowAction } from "./actions";
@@ -16,6 +17,13 @@ const statusTone = {
 
 export default async function BackupsPage() {
   const [items, stats] = await Promise.all([listBackups(100), getBackupStats()]);
+
+  const restoreOptions = items
+    .filter((b) => b.status === "success" && b.location)
+    .map((b) => ({
+      id: b.id,
+      label: `${b.dbName} · ${formatDate(b.createdAt)} (${formatBytes(b.sizeBytes)})`,
+    }));
 
   return (
     <div className="space-y-6">
@@ -54,6 +62,8 @@ export default async function BackupsPage() {
         </div>
       </div>
 
+      <RestoreBackupForm options={restoreOptions} />
+
       <div className="overflow-hidden rounded-2xl border border-border bg-surface">
         <table className="w-full text-sm">
           <thead className="border-b border-border text-left text-muted">
@@ -63,12 +73,13 @@ export default async function BackupsPage() {
               <th className="px-4 py-3 font-medium">Ukuran</th>
               <th className="px-4 py-3 font-medium">Lokasi</th>
               <th className="px-4 py-3 font-medium">Waktu</th>
+              <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody>
             {items.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-muted">
+                <td colSpan={6} className="px-4 py-8 text-center text-muted">
                   Belum ada backup. Klik “Backup now” atau tunggu jadwal harian.
                 </td>
               </tr>
@@ -98,6 +109,16 @@ export default async function BackupsPage() {
                 </td>
                 <td className="px-4 py-3 text-muted">
                   {formatDate(b.createdAt)}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  {b.status === "success" && b.location && (
+                    <a
+                      href={`/backups/${b.id}/download`}
+                      className="text-primary hover:underline"
+                    >
+                      Download
+                    </a>
+                  )}
                 </td>
               </tr>
             ))}

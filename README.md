@@ -98,7 +98,11 @@ One-off sweep without the worker: `npm run quota:sweep`.
 - **Backups** (`lib/services/backups.ts` + `/backups`) — daily `pg_dump -Fc`
   per database streamed straight to MinIO/S3, recorded in `backups`, with a
   rolling **7-day retention** prune. Runs on a cron (`BACKUP_CRON`, default
-  02:00) plus a manual "Backup now" button. Restores verified.
+  02:00) plus a manual "Backup now" button.
+- **Restore & download** — restore any backup into a fresh managed database
+  (owner role + metadata provisioned, then `pg_restore --no-owner --role`
+  streamed from S3, rolled back on failure) straight from the Backups page, or
+  download the raw `.dump` via an auth-gated route (`/backups/[id]/download`).
 
 The worker now schedules three jobs: `quota-sweep`, `monitor-sweep` (each every
 60s) and `backup-all` (daily cron + prune).

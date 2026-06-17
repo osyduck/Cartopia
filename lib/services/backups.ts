@@ -1,8 +1,9 @@
 import { spawn } from "node:child_process";
 import { PassThrough } from "node:stream";
+import type { Readable } from "node:stream";
 import { and, desc, eq, lt } from "drizzle-orm";
 import { Upload } from "@aws-sdk/lib-storage";
-import { DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { db } from "@/lib/db";
 import {
   backups,
@@ -14,6 +15,11 @@ import { s3, BACKUP_BUCKET } from "@/lib/s3";
 import { decryptSecret } from "@/lib/crypto";
 import { env } from "@/lib/env";
 import { writeAudit } from "@/lib/audit";
+import {
+  provisionDatabase,
+  deleteDatabase,
+  type ProvisionResult,
+} from "@/lib/services/databases";
 
 /**
  * Spawn pg_dump (custom format) for a database. In dev we exec inside the
@@ -30,6 +36,24 @@ function spawnPgDump(instance: Instance, dbName: string) {
     return spawn(cmd, { shell: true });
   }
   const cmd = `${env.PG_DUMP_BIN} -h ${instance.host} -p ${instance.port} -U ${instance.adminUser} -Fc -d ${dbName}`;
+  return spawn(cmd, {
+    shell: true,
+    env: { ...process.env, PGPASSWORD: decryptSecret(instance.adminPasswordEnc) },
+  });
+}
+
+/**
+ * Spawn pg_restore reading a custom-format dump from stdin into an existing
+ * database. --no-owner/--no-acl drop references to the source's roles; --role
+ * makes restored objects owned by the new managed owner.
+ */
+function spawnPgRestore(instance: Instance, dbName: string, ownerRole: string) {
+  const flags = `-Fc --no-owner --no-acl --role=${ownerRole} -d ${dbName}`;
+  if (env.BACKUP_DOCKER_CONTAINER) {
+    const cmd = `docker exec -i ${env.BACKUP_DOCKER_CONTAINER} pg_restore -U ${instance.adminUser} ${flags}`;
+    return spawn(cmd, { shell: true });
+  }
+  const cmd = `pg_restore -h ${instance.host} -p ${instance.port} -U ${instance.adminUser} ${flags}`;
   return spawn(cmd, {
     shell: true,
     env: { ...process.env, PGPASSWORD: decryptSecret(instance.adminPasswordEnc) },
@@ -135,6 +159,90 @@ export async function runAllBackups(): Promise<BackupOutcome[]> {
     out.push(await runBackup(r.id));
   }
   return out;
+}
+
+/**
+ * Restore a backup into a brand-new managed database (owner role + metadata
+ * provisioned, then pg_restore streamed from S3). Rolls the new database back
+ * if the restore fails. Returns the new owner's one-time credentials.
+ */
+export async function restoreBackup(
+  backupId: string,
+  newName: string,
+  actor: string,
+): Promise<ProvisionResult> {
+  const [b] = await db
+    .select({ backup: backups, source: databases, instance: instances })
+    .from(backups)
+    .innerJoin(databases, eq(backups.databaseId, databases.id))
+    .innerJoin(instances, eq(databases.instanceId, instances.id))
+    .where(eq(backups.id, backupId))
+    .limit(1);
+  if (!b) throw new Error("Backup not found.");
+  if (b.backup.status !== "success" || !b.backup.location) {
+    throw new Error("Backup ini tidak punya object yang bisa di-restore.");
+  }
+
+  const provisioned = await provisionDatabase({
+    name: newName,
+    quotaBytes: b.source.quotaBytes,
+    connectionLimit: -1,
+    actor,
+  });
+
+  try {
+    const obj = await s3.send(
+      new GetObjectCommand({ Bucket: BACKUP_BUCKET, Key: b.backup.location }),
+    );
+    const body = obj.Body as Readable;
+
+    await new Promise<void>((resolve, reject) => {
+      const child = spawnPgRestore(b.instance, provisioned.databaseName, provisioned.ownerRole);
+      let stderr = "";
+      child.stderr.on("data", (c) => (stderr += c.toString()));
+      child.on("error", reject);
+      child.on("close", (code) =>
+        code === 0
+          ? resolve()
+          : reject(new Error(stderr.trim() || `pg_restore exit ${code}`)),
+      );
+      body.pipe(child.stdin);
+    });
+
+    await writeAudit({
+      actor,
+      action: "backup.restore",
+      target: provisioned.databaseName,
+      metadata: { from: b.source.name, key: b.backup.location },
+    });
+    return provisioned;
+  } catch (err) {
+    // Roll back the half-restored database so the name is free to retry.
+    await deleteDatabase(provisioned.databaseId, actor).catch(() => {});
+    throw err;
+  }
+}
+
+/** Fetch a backup's S3 object stream for download (auth-gated by the caller). */
+export async function getBackupObject(backupId: string): Promise<{
+  body: Readable;
+  filename: string;
+  contentLength?: number;
+} | null> {
+  const [b] = await db
+    .select({ location: backups.location })
+    .from(backups)
+    .where(eq(backups.id, backupId))
+    .limit(1);
+  if (!b?.location) return null;
+  const obj = await s3.send(
+    new GetObjectCommand({ Bucket: BACKUP_BUCKET, Key: b.location }),
+  );
+  return {
+    body: obj.Body as Readable,
+    filename: b.location.split("/").pop() ?? "backup.dump",
+    contentLength: obj.ContentLength,
+  };
 }
 
 /** Delete backup objects + rows older than the retention window. */
