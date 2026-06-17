@@ -24,10 +24,29 @@ other service is internal to the docker network.
 - Docker + the compose plugin
 - Nginx + certbot already installed on the host
 
-## 1. Clone + configure
+## 1. Get the deployment files
+
+**Option A — zero-clone (recommended):** fetch only the compose + infra config
+from a pinned release tag, no git, no source code on the VPS:
 
 ```bash
-git clone https://github.com/osyduck/Cartopia.git
+curl -fsSL https://raw.githubusercontent.com/osyduck/Cartopia/main/deploy.sh | bash
+# pin a version:  ... | VERSION=v0.2.0 bash
+# custom dir:     ... | INSTALL_DIR=/opt/cartopia bash
+```
+
+First run fetches the files into `./cartopia/` and creates `.env.production`
+from the example, then exits and asks you to edit the secrets. Re-run after
+editing to pull the prebuilt GHCR images and start the stack. The script
+auto-pins the image tags to the version being deployed.
+
+Then `cd cartopia` and continue at **Generate real secrets** below.
+
+**Option B — shallow clone** (if you prefer git, or want `--build` as a
+fallback):
+
+```bash
+git clone --depth 1 https://github.com/osyduck/Cartopia.git
 cd Cartopia
 cp .env.production.example .env.production
 ```
