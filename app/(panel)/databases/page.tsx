@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AlertTriangle } from "lucide-react";
 import { listDatabases } from "@/lib/services/databases";
 import { CreateDatabaseForm } from "@/components/create-database-form";
 import { Badge } from "@/components/badge";
@@ -26,29 +27,34 @@ export default async function DatabasesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Databases</h1>
-          <p className="text-sm text-muted">{dbs.length} database dikelola</p>
+          <h1 className="text-xl font-semibold tracking-tight">Databases</h1>
+          <p className="mt-1 text-sm text-muted">
+            {dbs.length} database dikelola
+          </p>
         </div>
-        <ActionForm
-          action={runSweepAction}
-          label="↻ Quota sweep"
-          pendingText="Memindai…"
-          variant="ghost"
-        />
+        <div className="flex items-center gap-2">
+          <ActionForm
+            action={runSweepAction}
+            label="Quota sweep"
+            pendingText="Memindai…"
+            variant="ghost"
+          />
+        </div>
       </div>
 
       {alerts.length > 0 && (
-        <div className="space-y-2 rounded-2xl border border-warning/40 bg-warning/5 p-4">
-          <div className="text-sm font-medium text-warning">
-            ⚠ {alerts.length} database butuh perhatian
+        <div className="rounded-lg border border-warning/25 bg-warning/8 px-4 py-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-warning">
+            <AlertTriangle className="size-4 shrink-0" />
+            <span>{alerts.length} database butuh perhatian</span>
           </div>
-          <ul className="space-y-1 text-sm">
+          <ul className="mt-2 space-y-1.5 text-sm">
             {alerts.map((d) => {
               const pct = quotaPct(d.sizeBytes, d.quotaBytes);
               return (
-                <li key={d.id} className="flex items-center gap-2">
+                <li key={d.id} className="flex flex-wrap items-center gap-2">
                   <Link
                     href={`/databases/${d.id}`}
                     className="font-medium text-primary hover:underline"
@@ -60,9 +66,13 @@ export default async function DatabasesPage() {
                     {pct != null && ` (${pct.toFixed(0)}%)`}
                   </span>
                   {d.isReadonly ? (
-                    <Badge tone="danger">over quota · read-only</Badge>
+                    <Badge tone="danger" dot>
+                      over quota · read-only
+                    </Badge>
                   ) : (
-                    <Badge tone="warning">mendekati quota</Badge>
+                    <Badge tone="warning" dot>
+                      mendekati quota
+                    </Badge>
                   )}
                 </li>
               );
@@ -73,9 +83,9 @@ export default async function DatabasesPage() {
 
       <CreateDatabaseForm />
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+      <div className="overflow-hidden rounded-xl border border-border bg-surface elevation-1">
         <table className="w-full text-sm">
-          <thead className="border-b border-border text-left text-muted">
+          <thead className="border-b border-border text-left text-xs uppercase tracking-wide text-faint">
             <tr>
               <th className="px-4 py-3 font-medium">Nama</th>
               <th className="px-4 py-3 font-medium">Instance</th>
@@ -88,7 +98,7 @@ export default async function DatabasesPage() {
           <tbody>
             {dbs.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted">
+                <td colSpan={6} className="px-4 py-10 text-center text-muted">
                   Belum ada database. Buat yang pertama di atas.
                 </td>
               </tr>
@@ -98,7 +108,7 @@ export default async function DatabasesPage() {
               return (
                 <tr
                   key={d.id}
-                  className="border-b border-border/50 last:border-0 hover:bg-surface-2/50"
+                  className="border-b border-border/60 last:border-0 transition-colors hover:bg-surface-2/40"
                 >
                   <td className="px-4 py-3">
                     <Link
@@ -109,8 +119,10 @@ export default async function DatabasesPage() {
                     </Link>
                   </td>
                   <td className="px-4 py-3 text-muted">{d.instanceName}</td>
-                  <td className="px-4 py-3">{formatBytes(d.sizeBytes)}</td>
-                  <td className="px-4 py-3 text-muted">
+                  <td className="px-4 py-3 tabular-nums">
+                    {formatBytes(d.sizeBytes)}
+                  </td>
+                  <td className="px-4 py-3 text-muted tabular-nums">
                     {d.quotaBytes ? formatBytes(d.quotaBytes) : "∞"}
                   </td>
                   <td className="px-4 py-3">
@@ -122,15 +134,15 @@ export default async function DatabasesPage() {
                           <div
                             className={
                               pct >= 100
-                                ? "h-full bg-danger"
+                                ? "h-full rounded-full bg-danger"
                                 : pct >= WARN_PCT
-                                  ? "h-full bg-warning"
-                                  : "h-full bg-success"
+                                  ? "h-full rounded-full bg-warning"
+                                  : "h-full rounded-full bg-success"
                             }
                             style={{ width: `${Math.min(100, pct)}%` }}
                           />
                         </div>
-                        <span className="text-xs text-muted">
+                        <span className="text-xs text-muted tabular-nums">
                           {pct.toFixed(0)}%
                         </span>
                       </div>
@@ -138,11 +150,17 @@ export default async function DatabasesPage() {
                   </td>
                   <td className="px-4 py-3">
                     {d.isReadonly ? (
-                      <Badge tone="danger">read-only</Badge>
+                      <Badge tone="danger" dot>
+                        read-only
+                      </Badge>
                     ) : pct != null && pct >= WARN_PCT ? (
-                      <Badge tone="warning">warning</Badge>
+                      <Badge tone="warning" dot>
+                        warning
+                      </Badge>
                     ) : (
-                      <Badge tone="success">active</Badge>
+                      <Badge tone="success" dot>
+                        active
+                      </Badge>
                     )}
                   </td>
                 </tr>

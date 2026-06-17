@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { ChevronDown, ChevronUp, Plus } from "lucide-react";
 import {
   createDatabaseAction,
   type ActionState,
@@ -21,14 +22,21 @@ export function CreateDatabaseForm() {
   }, [state.reveal]);
 
   return (
-    <div className="rounded-2xl border border-border bg-surface p-5">
+    <div className="rounded-xl border border-border bg-surface elevation-1 p-5">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between text-left"
       >
-        <span className="font-medium">+ Database baru</span>
-        <span className="text-muted">{open ? "▲" : "▼"}</span>
+        <span className="flex items-center gap-2 font-medium text-sm">
+          <Plus className="size-4 text-faint" />
+          Database baru
+        </span>
+        {open ? (
+          <ChevronUp className="size-4 text-faint" />
+        ) : (
+          <ChevronDown className="size-4 text-faint" />
+        )}
       </button>
 
       {open && (
@@ -40,9 +48,9 @@ export function CreateDatabaseForm() {
                 name="name"
                 required
                 placeholder="my_app"
-                className="w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-primary"
+                className="w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:bg-surface"
               />
-              <span className="text-xs text-muted">
+              <span className="text-xs text-faint">
                 Role owner <code>{"<nama>_owner"}</code> dibuat otomatis.
               </span>
             </label>
@@ -54,9 +62,9 @@ export function CreateDatabaseForm() {
                 type="number"
                 min={0}
                 defaultValue={0}
-                className="w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-primary"
+                className="w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:bg-surface"
               />
-              <span className="text-xs text-muted">0 = unlimited</span>
+              <span className="text-xs text-faint">0 = unlimited</span>
             </label>
 
             <label className="space-y-1.5">
@@ -66,14 +74,14 @@ export function CreateDatabaseForm() {
                 type="number"
                 min={-1}
                 defaultValue={-1}
-                className="w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none focus:border-primary"
+                className="w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm outline-none transition-colors focus:border-primary focus:bg-surface"
               />
-              <span className="text-xs text-muted">-1 = unlimited</span>
+              <span className="text-xs text-faint">-1 = unlimited</span>
             </label>
           </div>
 
           {state.error && (
-            <p className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
+            <p className="rounded-lg border border-danger/25 bg-danger/8 px-3 py-2 text-sm text-danger">
               {state.error}
             </p>
           )}
