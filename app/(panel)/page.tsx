@@ -34,7 +34,7 @@ export default async function OverviewPage() {
   const stats = [
     { label: "Databases", value: dbCount.n, href: "/databases" },
     { label: "Roles", value: roleCount.n, href: "/databases" },
-    { label: "Instances online", value: instanceCount.n, href: "/monitoring" },
+    { label: "Instances online", value: instanceCount.n },
     { label: "Storage terpakai", value: formatBytes(totalBytes) },
   ];
 

@@ -24,12 +24,6 @@ export default async function PanelLayout({
           <NavLink href="/databases" icon="🗄">
             Databases
           </NavLink>
-          <NavLink href="/monitoring" icon="📈">
-            Monitoring
-          </NavLink>
-          <NavLink href="/backups" icon="💾">
-            Backups
-          </NavLink>
           <NavLink href="/audit" icon="📜">
             Audit log
           </NavLink>
