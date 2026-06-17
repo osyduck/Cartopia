@@ -7,7 +7,7 @@ import { NavLink } from "@/components/nav-link";
 import { BrandMark } from "@/components/brand-mark";
 
 const NAV: { href: string; icon: LucideIcon; label: string }[] = [
-  { href: "/", icon: LayoutDashboard, label: "Overview" },
+  { href: "/overview", icon: LayoutDashboard, label: "Overview" },
   { href: "/databases", icon: Database, label: "Databases" },
   { href: "/audit", icon: ScrollText, label: "Audit log" },
 ];
