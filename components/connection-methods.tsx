@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Info } from "lucide-react";
+import { Info, Check, Copy } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Badge } from "@/components/badge";
 import { CopyButton } from "@/components/copy-button";
@@ -49,28 +49,64 @@ export function ConnectionMethods({
   hasPassword: boolean;
 }) {
   const [active, setActive] = useState<ConnMethod["key"]>(methods[0].key);
+  const [copied, setCopied] = useState(false);
   const m = methods.find((x) => x.key === active) ?? methods[0];
+
+  function copyEnv() {
+    const lines = [
+      `PGHOST=${m.host}`,
+      `PGPORT=${m.port}`,
+      `PGDATABASE=${m.database}`,
+      `PGUSER=${m.username}`,
+      ...(m.password ? [`PGPASSWORD=${m.password}`] : []),
+      `DATABASE_URL=${m.connectionString}`,
+    ];
+    navigator.clipboard.writeText(lines.join("\n")).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
 
   return (
     <section className="rounded-xl border border-border bg-surface elevation-1 p-5">
-      <h2 className="text-base font-semibold">Database Connection Methods</h2>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-base font-semibold">Database Connection Methods</h2>
+        <button
+          type="button"
+          onClick={copyEnv}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors duration-150",
+            copied
+              ? "border-success/30 bg-success/10 text-success"
+              : "border-border bg-surface-2 text-muted hover:border-border-strong hover:text-text",
+          )}
+        >
+          {copied ? (
+            <Check className="size-3.5" />
+          ) : (
+            <Copy className="size-3.5" />
+          )}
+          {copied ? "Copied" : "Copy .env"}
+        </button>
+      </div>
 
-      <div className="mt-4 flex flex-wrap gap-1 border-b border-border">
+      {/* Method switcher — segmented control */}
+      <div className="mt-4 inline-flex rounded-lg border border-border bg-surface-2 p-0.5">
         {methods.map((x) => (
           <button
             key={x.key}
             type="button"
             onClick={() => setActive(x.key)}
             className={cn(
-              "-mb-px flex items-center gap-2 border-b-2 px-3 py-2 text-sm transition-colors duration-150",
+              "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors duration-150",
               active === x.key
-                ? "border-primary text-text"
-                : "border-transparent text-muted hover:text-text",
+                ? "bg-surface text-text elevation-1"
+                : "text-muted hover:text-text",
             )}
           >
             {x.label}
             {x.recommended && (
-              <Badge tone="primary" className="ml-1">
+              <Badge tone="primary" className="ml-0.5">
                 Recommended
               </Badge>
             )}
@@ -101,6 +137,7 @@ export function ConnectionMethods({
         <Field
           label="Connection String"
           value={m.connectionString}
+          secret
           className="sm:col-span-2"
         />
       </div>
