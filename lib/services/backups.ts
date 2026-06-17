@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { PassThrough } from "node:stream";
 import type { Readable } from "node:stream";
-import { and, desc, eq, lt } from "drizzle-orm";
+import { desc, eq, lt } from "drizzle-orm";
 import { Upload } from "@aws-sdk/lib-storage";
 import { DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { db } from "@/lib/db";
@@ -290,15 +290,6 @@ const backupColumns = {
   finishedAt: backups.finishedAt,
 };
 
-export async function listBackups(limit = 100): Promise<BackupListItem[]> {
-  return db
-    .select(backupColumns)
-    .from(backups)
-    .innerJoin(databases, eq(backups.databaseId, databases.id))
-    .orderBy(desc(backups.createdAt))
-    .limit(limit);
-}
-
 export async function listBackupsForDatabase(
   databaseId: string,
   limit = 50,
@@ -310,20 +301,4 @@ export async function listBackupsForDatabase(
     .where(eq(backups.databaseId, databaseId))
     .orderBy(desc(backups.createdAt))
     .limit(limit);
-}
-
-export async function getBackupStats(): Promise<{
-  total: number;
-  lastSuccessAt: Date | null;
-}> {
-  const rows = await db
-    .select({ status: backups.status, finishedAt: backups.finishedAt })
-    .from(backups)
-    .where(and(eq(backups.status, "success")))
-    .orderBy(desc(backups.finishedAt))
-    .limit(1);
-  const total = (
-    await db.select({ id: backups.id }).from(backups)
-  ).length;
-  return { total, lastSuccessAt: rows[0]?.finishedAt ?? null };
 }

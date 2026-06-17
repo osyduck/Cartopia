@@ -1,12 +1,6 @@
-import { and, asc, desc, eq, gte, sql } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import {
-  databases,
-  instances,
-  metricSnapshots,
-  usageSnapshots,
-  type Instance,
-} from "@/lib/db/schema";
+import { databases, instances, metricSnapshots } from "@/lib/db/schema";
 import * as dp from "@/lib/dataplane";
 
 // ─── Collection (run by the worker) ──────────────────────────────────────────
@@ -57,56 +51,6 @@ export async function runMonitorSweep(): Promise<MonitorSweepResult> {
   return { instancesChecked: allInstances.length, databasesSampled: sampled };
 }
 
-// ─── Read models (for the Monitoring page) ───────────────────────────────────
-
-export type InstanceHealth = Instance & { databaseCount: number };
-
-export async function getInstancesHealth(): Promise<InstanceHealth[]> {
-  const rows = await db
-    .select({
-      instance: instances,
-      databaseCount: sql<number>`count(${databases.id})::int`,
-    })
-    .from(instances)
-    .leftJoin(databases, eq(databases.instanceId, instances.id))
-    .groupBy(instances.id)
-    .orderBy(instances.name);
-  return rows.map((r) => ({ ...r.instance, databaseCount: r.databaseCount }));
-}
-
-export type DatabaseMonitor = {
-  id: string;
-  name: string;
-  instanceName: string;
-  isReadonly: boolean;
-  reachable: boolean;
-  metrics: dp.DbMetrics | null;
-};
-
-export async function getDatabasesMonitoring(): Promise<DatabaseMonitor[]> {
-  const rows = await db
-    .select({ database: databases, instance: instances })
-    .from(databases)
-    .innerJoin(instances, eq(databases.instanceId, instances.id))
-    .orderBy(databases.name);
-
-  const out: DatabaseMonitor[] = [];
-  for (const { database: d, instance } of rows) {
-    const metrics = await dp
-      .databaseMetrics(instance, d.name)
-      .catch(() => null);
-    out.push({
-      id: d.id,
-      name: d.name,
-      instanceName: instance.name,
-      isReadonly: d.isReadonly,
-      reachable: metrics != null,
-      metrics,
-    });
-  }
-  return out;
-}
-
 /** When the worker last sampled metrics for a database (null if never). */
 export async function getLastMetricAt(
   databaseId: string,
@@ -118,28 +62,4 @@ export async function getLastMetricAt(
     .orderBy(desc(metricSnapshots.capturedAt))
     .limit(1);
   return row?.capturedAt ?? null;
-}
-
-export type TrendPoint = { capturedAt: Date; sizeBytes: number };
-
-/** Recent size samples for a database, oldest→newest (last 24h). */
-export async function getSizeTrend(
-  databaseId: string,
-  sinceHours = 24,
-): Promise<TrendPoint[]> {
-  const since = new Date(Date.now() - sinceHours * 3600 * 1000);
-  return db
-    .select({
-      capturedAt: usageSnapshots.capturedAt,
-      sizeBytes: usageSnapshots.sizeBytes,
-    })
-    .from(usageSnapshots)
-    .where(
-      and(
-        eq(usageSnapshots.databaseId, databaseId),
-        gte(usageSnapshots.capturedAt, since),
-      ),
-    )
-    .orderBy(asc(usageSnapshots.capturedAt))
-    .limit(200);
 }

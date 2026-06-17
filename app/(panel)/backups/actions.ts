@@ -5,19 +5,11 @@ import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth/session";
 import { isValidIdentifier } from "@/lib/dataplane/identifiers";
 import {
-  runAllBackups,
   runBackup,
   pruneOldBackups,
   restoreBackup,
 } from "@/lib/services/backups";
 import type { ActionState } from "@/app/(panel)/databases/actions";
-
-export async function backupNowAction(): Promise<void> {
-  await requireSession();
-  await runAllBackups();
-  await pruneOldBackups();
-  revalidatePath("/backups");
-}
 
 /** Back up a single database (used from its per-database Backups tab). */
 export async function backupDatabaseNowAction(formData: FormData): Promise<void> {
