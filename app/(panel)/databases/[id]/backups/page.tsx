@@ -39,16 +39,16 @@ export default async function DatabaseBackupsPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm text-muted">
-          Auto harian (cron{" "}
+          Daily auto (cron{" "}
           <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs">
             {env.BACKUP_CRON}
           </code>
-          ) · retensi {env.BACKUP_RETENTION_DAYS} hari · pg_dump → S3
+          ) · {env.BACKUP_RETENTION_DAYS}-day retention · pg_dump → S3
         </p>
         <ActionForm
           action={backupDatabaseNowAction}
           label="Backup now"
-          pendingText="Membackup…"
+          pendingText="Backing up…"
           variant="primary"
         >
           <input type="hidden" name="databaseId" value={id} />
@@ -62,9 +62,9 @@ export default async function DatabaseBackupsPage({
           <thead className="border-b border-border text-left text-xs uppercase tracking-wide text-faint">
             <tr>
               <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Ukuran</th>
-              <th className="px-4 py-3 font-medium">Lokasi</th>
-              <th className="px-4 py-3 font-medium">Waktu</th>
+              <th className="px-4 py-3 font-medium">Size</th>
+              <th className="px-4 py-3 font-medium">Location</th>
+              <th className="px-4 py-3 font-medium">Time</th>
               <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
@@ -72,7 +72,7 @@ export default async function DatabaseBackupsPage({
             {items.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-10 text-center text-muted">
-                  Belum ada backup. Klik “Backup now” atau tunggu jadwal harian.
+                  No backups yet.
                 </td>
               </tr>
             )}

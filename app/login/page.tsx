@@ -67,8 +67,8 @@ export default function LoginPage() {
             </p>
           )}
 
-          <SubmitButton className="w-full" pendingText="Masuk…">
-            Masuk
+          <SubmitButton className="w-full" pendingText="Signing in…">
+            Sign in
           </SubmitButton>
         </form>
       </div>

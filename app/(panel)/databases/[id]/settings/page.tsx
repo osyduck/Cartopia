@@ -43,7 +43,7 @@ export default async function DatabaseSettingsPage({
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <ActionForm
             action={toggleReadOnlyAction}
-            label={database.isReadonly ? "Aktifkan write" : "Set read-only"}
+            label={database.isReadonly ? "Enable writes" : "Set read-only"}
             variant="ghost"
           >
             <input type="hidden" name="id" value={database.id} />
@@ -56,8 +56,8 @@ export default async function DatabaseSettingsPage({
 
           <ActionForm
             action={deleteDatabaseAction}
-            confirm={`Hapus database "${database.name}" beserta semua rolenya? Tindakan ini permanen.`}
-            label="Hapus database"
+            confirm={`Delete database "${database.name}" and all its roles? This is permanent.`}
+            label="Delete database"
             variant="danger"
           >
             <input type="hidden" name="id" value={database.id} />

@@ -31,14 +31,14 @@ export default async function DatabasesPage() {
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Databases</h1>
           <p className="mt-1 text-sm text-muted">
-            {dbs.length} database dikelola
+            {dbs.length} databases managed
           </p>
         </div>
         <div className="flex items-center gap-2">
           <ActionForm
             action={runSweepAction}
             label="Quota sweep"
-            pendingText="Memindai…"
+            pendingText="Scanning…"
             variant="ghost"
           />
         </div>
@@ -48,7 +48,7 @@ export default async function DatabasesPage() {
         <div className="rounded-lg border border-warning/25 bg-warning/8 px-4 py-3">
           <div className="flex items-center gap-2 text-sm font-medium text-warning">
             <AlertTriangle className="size-4 shrink-0" />
-            <span>{alerts.length} database butuh perhatian</span>
+            <span>{alerts.length} databases need attention</span>
           </div>
           <ul className="mt-2 space-y-1.5 text-sm">
             {alerts.map((d) => {
@@ -71,7 +71,7 @@ export default async function DatabasesPage() {
                     </Badge>
                   ) : (
                     <Badge tone="warning" dot>
-                      mendekati quota
+                      near quota
                     </Badge>
                   )}
                 </li>
@@ -87,9 +87,9 @@ export default async function DatabasesPage() {
         <table className="w-full text-sm">
           <thead className="border-b border-border text-left text-xs uppercase tracking-wide text-faint">
             <tr>
-              <th className="px-4 py-3 font-medium">Nama</th>
+              <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Instance</th>
-              <th className="px-4 py-3 font-medium">Ukuran</th>
+              <th className="px-4 py-3 font-medium">Size</th>
               <th className="px-4 py-3 font-medium">Quota</th>
               <th className="px-4 py-3 font-medium">Usage</th>
               <th className="px-4 py-3 font-medium">Status</th>
@@ -99,7 +99,7 @@ export default async function DatabasesPage() {
             {dbs.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-muted">
-                  Belum ada database. Buat yang pertama di atas.
+                  No databases yet. Create one above.
                 </td>
               </tr>
             )}

@@ -20,7 +20,7 @@ export default async function PanelLayout({
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-text"
           >
             <LogOut className="size-4" />
-            Logout
+            Sign out
           </button>
         </form>
       }

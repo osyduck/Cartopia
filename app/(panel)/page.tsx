@@ -67,12 +67,12 @@ export default async function OverviewPage() {
     counts.over > 0 ? "over" : counts.warning > 0 ? "warning" : "ok";
   const headline =
     counts.over > 0
-      ? `${counts.over} database lewat quota — read-only`
+      ? `${counts.over} databases over quota — read-only`
       : counts.warning > 0
-        ? `${counts.warning} database mendekati quota`
+        ? `${counts.warning} databases near quota`
         : dbs.length === 0
-          ? "Belum ada database"
-          : "Semua database sehat";
+          ? "No databases yet"
+          : "All databases healthy";
 
   return (
     <div className="space-y-8">
@@ -83,7 +83,7 @@ export default async function OverviewPage() {
           className="glow-primary inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-fg transition-colors duration-150 hover:bg-primary-hover"
         >
           <Plus className="size-4" />
-          Database baru
+          New database
         </Link>
       </div>
 
@@ -124,9 +124,9 @@ export default async function OverviewPage() {
         {/* Capacity */}
         <div className="rounded-xl border border-border bg-surface elevation-1 p-6">
           <div className="flex items-baseline justify-between gap-3">
-            <span className="text-sm text-muted">Storage terpakai</span>
+            <span className="text-sm text-muted">Storage used</span>
             <span className="text-sm text-muted tabular-nums">
-              {usedPct != null ? `${usedPct.toFixed(0)}% dari quota` : "—"}
+              {usedPct != null ? `${usedPct.toFixed(0)}% of quota` : "—"}
             </span>
           </div>
           <div className="mt-1 flex items-baseline gap-2">
@@ -135,7 +135,7 @@ export default async function OverviewPage() {
             </span>
             {totalQuota > 0 && (
               <span className="text-sm text-muted tabular-nums">
-                / {formatBytes(totalQuota)} dialokasikan
+                / {formatBytes(totalQuota)} allocated
               </span>
             )}
           </div>
@@ -160,17 +160,17 @@ export default async function OverviewPage() {
 
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <Badge tone="success" dot>
-              <span className="tabular-nums">{counts.ok}</span> sehat
+              <span className="tabular-nums">{counts.ok}</span> healthy
             </Badge>
             <Badge tone="warning" dot>
-              <span className="tabular-nums">{counts.warning}</span> mendekati
+              <span className="tabular-nums">{counts.warning}</span> near
             </Badge>
             <Badge tone="danger" dot>
-              <span className="tabular-nums">{counts.over}</span> lewat quota
+              <span className="tabular-nums">{counts.over}</span> over quota
             </Badge>
             {unlimited > 0 && (
               <span className="text-xs text-muted">
-                · <span className="tabular-nums">{unlimited}</span> tanpa batas
+                · <span className="tabular-nums">{unlimited}</span> unlimited
               </span>
             )}
           </div>
@@ -188,12 +188,12 @@ export default async function OverviewPage() {
 
         {dbs.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-surface/40 p-10 text-center">
-            <p className="text-sm text-muted">Belum ada database yang dikelola.</p>
+            <p className="text-sm text-muted">No databases managed yet.</p>
             <Link
               href="/databases"
               className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
             >
-              Buat database pertama →
+              Create your first database →
             </Link>
           </div>
         ) : (

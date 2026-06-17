@@ -152,7 +152,7 @@ export default async function DatabaseMonitorPage({
             {!metrics
               ? "instance unreachable"
               : lastMetricAt
-                ? `Sampel terakhir ${formatRelative(lastMetricAt)}`
+                ? `Last sample ${formatRelative(lastMetricAt)}`
                 : "Live · on-demand"}
           </div>
         </div>
