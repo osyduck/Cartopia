@@ -56,4 +56,8 @@ COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/drizzle ./drizzle
 COPY --from=builder /app/tsconfig.json ./
 COPY --from=builder /app/package.json ./
+# `npm run db:*` / `quota:sweep` etc. hardcode `--env-file=.env.local`; in the
+# container the env comes from docker env_file, so an empty .env.local satisfies
+# the flag without overriding anything.
+RUN touch .env.local
 CMD ["npx", "tsx", "worker/index.ts"]
