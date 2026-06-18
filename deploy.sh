@@ -102,9 +102,9 @@ docker compose --env-file .env.production -f docker-compose.prod.yml up -d
 
 log ""
 log "✓ Stack is up. Next steps:"
-log "  1. Migrate + seed the metadata DB (first run only):"
-log "     docker compose --env-file .env.production -f docker-compose.prod.yml exec web npm run db:migrate"
-log "     docker compose --env-file .env.production -f docker-compose.prod.yml exec web npm run db:seed"
+log "  1. Migrate + seed the metadata DB (first run only, in the WORKER container):"
+log "     docker compose --env-file .env.production -f docker-compose.prod.yml exec worker npm run db:migrate"
+log "     docker compose --env-file .env.production -f docker-compose.prod.yml exec worker npm run db:seed"
 log "  2. Reverse-proxy Nginx → 127.0.0.1:3000 with TLS (see PRODUCTION.md)."
 log "  3. Open the panel, sign in, provision a database."
 log ""

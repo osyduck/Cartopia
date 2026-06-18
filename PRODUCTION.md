@@ -92,10 +92,13 @@ init).
 
 ## 4. Migrate + seed the metadata DB
 
+Run these in the **worker** container (it has the scripts + tsx + drizzle
+migrations; the web image is standalone Next.js and has none of them):
+
 ```bash
-docker compose --env-file .env.production -f docker-compose.prod.yml exec web \
+docker compose --env-file .env.production -f docker-compose.prod.yml exec worker \
   npm run db:migrate
-docker compose --env-file .env.production -f docker-compose.prod.yml exec web \
+docker compose --env-file .env.production -f docker-compose.prod.yml exec worker \
   npm run db:seed
 ```
 
