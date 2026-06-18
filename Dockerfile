@@ -27,6 +27,14 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
+# ─── prod-deps: production node_modules only (no devDeps) ───────────────────
+# Used by the web image to satisfy serverExternalPackages runtime requires
+# without shipping tsx/eslint/playwright/etc.
+FROM node:20-alpine AS prod-deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
 # ─── web: standalone Next.js server ─────────────────────────────────────────
 FROM node:20-alpine AS web
 WORKDIR /app
@@ -37,6 +45,11 @@ RUN addgroup -S nodejs && adduser -S nextjs -G nodejs
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+# serverExternalPackages (pg, pg-format, bcryptjs, @aws-sdk) are require()'d at
+# runtime; the standalone tracer includes only entry files and misses internal
+# requires (e.g. pg-format/lib/reserved.js, pg's sub-deps, the @aws-sdk tree).
+# Copy the full prod node_modules so every runtime require resolves.
+COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000 HOSTNAME=0.0.0.0
